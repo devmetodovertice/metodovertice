@@ -1,0 +1,2680 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Método Vértice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   RESET & TOKENS
+============================================================ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+
+:root{
+  --bg:#0D0D14;
+  --panel:#0A0A10;
+  --surface:#12121C;
+  --surface2:#181826;
+  --surface3:#1E1E2E;
+  --border:#252535;
+  --border2:#30303F;
+  --text:#EEEEF2;
+  --text2:#8888A0;
+  --text3:#484860;
+  --green:#4ADE80;
+  --green-dim:rgba(74,222,128,.10);
+  --green-border:rgba(74,222,128,.20);
+  --danger:#F87171;
+  --danger-dim:rgba(248,113,113,.12);
+  --r:10px;
+  --r2:6px;
+  --t:.16s ease;
+}
+
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  font-size:14px;
+  line-height:1.5;
+  font-weight:400;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ============================================================
+   APP SHELL
+============================================================ */
+.app-shell{
+  display:flex;
+  min-height:100vh;
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar{
+  width:260px;
+  min-width:260px;
+  background:var(--panel);
+  border-right:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  position:fixed;
+  top:0;bottom:0;left:0;
+  z-index:50;
+  overflow-y:auto;
+}
+
+.sidebar-logo{
+  padding:24px 20px 20px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.sidebar-logo-dot{
+  width:8px;height:8px;
+  border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 8px var(--green);
+  flex-shrink:0;
+}
+
+.sidebar-logo-text{
+  font-size:13px;
+  font-weight:600;
+  color:var(--text);
+  letter-spacing:-.2px;
+}
+
+.sidebar-logo-text span{color:var(--green)}
+
+.sidebar-steps{
+  padding:16px 12px;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+
+.sidebar-step{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:9px 10px;
+  border-radius:var(--r2);
+  cursor:default;
+  transition:background var(--t);
+  position:relative;
+}
+
+.sidebar-step.done{ opacity:.45; }
+.sidebar-step.active{
+  background:var(--surface2);
+  border-left:2px solid var(--green);
+  padding-left:10px;
+}
+
+.step-indicator{
+  width:22px;height:22px;min-width:22px;
+  border-radius:50%;
+  border:1.5px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;
+  font-weight:600;
+  color:var(--text3);
+  background:var(--surface);
+  transition:all var(--t);
+  font-variant-numeric:tabular-nums;
+}
+
+.sidebar-step.active .step-indicator{
+  border-color:var(--green);
+  background:var(--green-dim);
+  color:var(--green);
+}
+
+.sidebar-step.done .step-indicator{
+  border-color:transparent;
+  background:var(--green-dim);
+  color:var(--green);
+  font-size:11px;
+}
+
+.step-text{
+  display:flex;
+  flex-direction:column;
+}
+
+.step-name{
+  font-size:12px;
+  font-weight:500;
+  color:var(--text2);
+  line-height:1.2;
+}
+
+.sidebar-step.active .step-name{ color:var(--text); }
+
+.step-sub{
+  font-size:10.5px;
+  color:var(--text3);
+  margin-top:1px;
+}
+
+.sidebar-step.active .step-sub{ color:var(--text2); }
+
+/* connector line between steps */
+.sidebar-step:not(:last-child)::after{
+  content:'';
+  position:absolute;
+  left:20px;
+  bottom:-9px;
+  width:1px;
+  height:10px;
+  background:var(--border);
+}
+
+.sidebar-footer{
+  padding:16px 20px;
+  border-top:1px solid var(--border);
+}
+
+.sidebar-progress-bar{
+  height:2px;
+  background:var(--surface3);
+  border-radius:10px;
+  overflow:hidden;
+  margin-bottom:8px;
+}
+
+.sidebar-progress-fill{
+  height:100%;
+  background:var(--green);
+  border-radius:10px;
+  transition:width .5s cubic-bezier(.4,0,.2,1);
+  box-shadow:0 0 6px rgba(74,222,128,.4);
+}
+
+.sidebar-progress-label{
+  font-size:11px;
+  color:var(--text3);
+  font-variant-numeric:tabular-nums;
+}
+
+/* ===== MAIN CONTENT ===== */
+.main{
+  flex:1;
+  margin-left:260px;
+  display:flex;
+  flex-direction:column;
+  min-height:100vh;
+}
+
+/* top bar */
+.topbar{
+  height:52px;
+  background:rgba(12,12,14,.8);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 28px;
+  position:sticky;
+  top:0;
+  z-index:40;
+}
+
+.topbar-breadcrumb{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:12.5px;
+  color:var(--text3);
+}
+
+.topbar-breadcrumb .sep{color:var(--border2)}
+.topbar-breadcrumb .current{color:var(--text2);font-weight:500}
+
+.topbar-meta{
+  display:flex;
+  align-items:center;
+  gap:16px;
+}
+
+.topbar-step-badge{
+  font-size:11px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  color:var(--text2);
+  padding:3px 10px;
+  border-radius:100px;
+  font-weight:500;
+  font-variant-numeric:tabular-nums;
+}
+
+/* ===== CONTENT AREA ===== */
+.content{
+  flex:1;
+  padding:40px 28px 80px;
+  max-width:700px;
+  width:100%;
+}
+
+/* ===== SCREENS ===== */
+.screen{display:none;}
+.screen.active{display:block;animation:screenIn .25s cubic-bezier(.22,1,.36,1);}
+
+@keyframes screenIn{
+  from{opacity:0;transform:translateY(12px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* ===== PAGE HEADER ===== */
+.page-header{margin-bottom:32px;}
+
+.page-eyebrow{
+  font-size:10.5px;
+  font-weight:600;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  color:var(--green);
+  margin-bottom:10px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.page-eyebrow::before{
+  content:'';
+  width:16px;height:1.5px;
+  background:var(--green);
+  display:inline-block;
+}
+
+.page-title{
+  font-size:clamp(20px,3vw,26px);
+  font-weight:600;
+  color:var(--text);
+  letter-spacing:-.5px;
+  line-height:1.2;
+  margin-bottom:8px;
+}
+
+.page-desc{
+  font-size:14px;
+  color:var(--text2);
+  line-height:1.65;
+  font-weight:300;
+  max-width:520px;
+}
+
+/* ===== SECTION CARDS ===== */
+.section-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  margin-bottom:12px;
+  overflow:hidden;
+}
+
+.section-card-header{
+  padding:14px 18px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  border-bottom:1px solid var(--border);
+}
+
+.section-card-icon{
+  width:28px;height:28px;min-width:28px;
+  border-radius:6px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;
+}
+
+.section-card-title{
+  font-size:12.5px;
+  font-weight:600;
+  color:var(--text);
+  letter-spacing:-.1px;
+}
+
+.section-card-body{padding:20px 18px;}
+
+/* ===== FIELD FLOAT LABELS ===== */
+.field-wrap{
+  position:relative;
+  margin-bottom:18px;
+}
+
+.field-wrap label{
+  position:absolute;
+  top:12px;left:13px;
+  font-size:13px;
+  color:var(--text3);
+  font-weight:400;
+  transition:all var(--t);
+  pointer-events:none;
+  z-index:1;
+}
+
+.field-wrap input:focus ~ label,
+.field-wrap input:not(:placeholder-shown) ~ label,
+.field-wrap textarea:focus ~ label,
+.field-wrap textarea:not(:placeholder-shown) ~ label{
+  top:4px;
+  font-size:9.5px;
+  letter-spacing:.5px;
+  text-transform:uppercase;
+  color:var(--green);
+  font-weight:600;
+}
+
+.field-wrap input,
+.field-wrap textarea{
+  width:100%;
+  padding:18px 13px 8px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--r2);
+  font-family:'Inter',sans-serif;
+  font-size:14px;
+  font-weight:400;
+  color:var(--text);
+  transition:border-color var(--t),background var(--t);
+  outline:none;
+}
+
+.field-wrap input::placeholder,
+.field-wrap textarea::placeholder{color:transparent}
+
+.field-wrap input:focus,
+.field-wrap textarea:focus{
+  border-color:var(--green);
+  background:var(--surface3);
+}
+
+.field-wrap textarea{resize:vertical;min-height:90px;line-height:1.6;}
+
+/* plain inputs (non-float) */
+input.plain,textarea.plain{
+  width:100%;
+  padding:11px 13px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--r2);
+  font-family:'Inter',sans-serif;
+  font-size:13.5px;
+  font-weight:400;
+  color:var(--text);
+  outline:none;
+  transition:border-color var(--t),background var(--t);
+  -webkit-appearance:none;
+}
+
+input.plain::placeholder,textarea.plain::placeholder{color:var(--text3)}
+
+input.plain:focus,textarea.plain:focus{
+  border-color:var(--green);
+  background:var(--surface3);
+}
+
+textarea.plain{resize:vertical;min-height:88px;line-height:1.6;}
+
+input[type="month"].plain{color-scheme:dark;}
+
+.field-hint{
+  font-size:11.5px;
+  color:var(--text3);
+  margin-top:5px;
+  line-height:1.4;
+}
+
+.field-hint em{
+  font-style:normal;
+  color:var(--green);
+  background:var(--green-dim);
+  border:1px solid var(--green-border);
+  padding:0px 5px;
+  border-radius:3px;
+  font-size:11px;
+}
+
+.field-label-plain{
+  font-size:10.5px;
+  font-weight:600;
+  color:var(--text3);
+  text-transform:uppercase;
+  letter-spacing:.8px;
+  margin-bottom:7px;
+  display:block;
+}
+
+.field-group{margin-bottom:20px;}
+.field-sublabel{font-size:12.5px;color:var(--text3);margin-bottom:10px;line-height:1.5;}
+
+/* ===== CHIPS ===== */
+.chip-grid{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:8px;
+}
+
+.chip{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:6px 13px;
+  border:1px solid var(--border2);
+  border-radius:100px;
+  cursor:pointer;
+  font-family:'Inter',sans-serif;
+  font-size:12.5px;
+  font-weight:400;
+  color:var(--text2);
+  background:var(--surface2);
+  user-select:none;
+  white-space:nowrap;
+  transition:all var(--t);
+  line-height:1;
+}
+
+.chip-plus{
+  font-size:13px;
+  font-weight:300;
+  color:var(--border2);
+  line-height:1;
+  transition:color var(--t);
+}
+
+.chip:hover{
+  border-color:var(--green);
+  background:var(--green-dim);
+  color:var(--green);
+}
+.chip:hover .chip-plus{color:var(--green);}
+
+.chip.sel{
+  border-color:var(--green);
+  background:var(--green-dim);
+  color:var(--green);
+  box-shadow:0 0 0 1px var(--green-border);
+}
+.chip.sel .chip-plus{color:var(--green);}
+.chip input{display:none}
+
+/* ===== INLINE NOTICE ===== */
+.notice{
+  display:flex;
+  gap:10px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-left:2px solid var(--green);
+  border-radius:0 var(--r2) var(--r2) 0;
+  padding:12px 14px;
+  margin-bottom:18px;
+  font-size:13px;
+  color:var(--text2);
+  line-height:1.6;
+  font-weight:300;
+}
+
+.notice strong{color:var(--green);font-weight:600;display:block;margin-bottom:2px;}
+
+/* ===== OPTIONAL BADGE ===== */
+.opt-badge{
+  display:inline-block;
+  font-size:9px;
+  font-weight:600;
+  letter-spacing:.6px;
+  text-transform:uppercase;
+  color:var(--text3);
+  background:var(--surface3);
+  border:1px solid var(--border);
+  padding:1px 6px;
+  border-radius:100px;
+  margin-left:6px;
+  vertical-align:middle;
+}
+
+/* ===== BUTTONS ===== */
+.btn-row{
+  display:flex;
+  gap:8px;
+  margin-top:28px;
+  padding-top:20px;
+  border-top:1px solid var(--border);
+}
+
+.btn-primary{
+  flex:1;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding:12px 28px;
+  background:var(--green);
+  color:#0C0C0E;
+  border:none;
+  border-radius:var(--r2);
+  font-family:'Inter',sans-serif;
+  font-size:13.5px;
+  font-weight:600;
+  cursor:pointer;
+  transition:all var(--t);
+  letter-spacing:-.1px;
+}
+
+.btn-primary:hover{
+  background:#5fea8e;
+  transform:translateY(-1px);
+  box-shadow:0 4px 16px rgba(74,222,128,.25);
+}
+
+.btn-primary:active{transform:translateY(0);box-shadow:none;}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+
+.btn-back{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:10px 16px;
+  background:transparent;
+  color:var(--text3);
+  border:1px solid var(--border);
+  border-radius:var(--r2);
+  font-family:'Inter',sans-serif;
+  font-size:13px;
+  font-weight:500;
+  cursor:pointer;
+  transition:all var(--t);
+}
+
+.btn-back:hover{border-color:var(--border2);color:var(--text2);}
+
+.btn-ghost{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:7px 12px;
+  background:transparent;
+  color:var(--green);
+  border:1px dashed var(--green-border);
+  border-radius:var(--r2);
+  font-family:'Inter',sans-serif;
+  font-size:12px;
+  font-weight:500;
+  cursor:pointer;
+  transition:all var(--t);
+  margin-top:10px;
+}
+
+.btn-ghost:hover{background:var(--green-dim);border-style:solid;}
+
+.btn-secondary{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:10px 18px;
+  background:transparent;
+  color:var(--text2);
+  border:1px solid var(--border);
+  border-radius:var(--r2);
+  font-family:'Inter',sans-serif;
+  font-size:13px;
+  font-weight:500;
+  cursor:pointer;
+  transition:all var(--t);
+}
+
+.btn-secondary:hover{border-color:var(--border2);color:var(--text);}
+
+/* standalone full-width btn outside btn-row */
+.btn-primary-solo{
+  width:100%;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding:13px 28px;
+  background:var(--green);
+  color:#0C0C0E;
+  border:none;
+  border-radius:var(--r2);
+  font-family:'Inter',sans-serif;
+  font-size:14px;
+  font-weight:700;
+  cursor:pointer;
+  transition:all var(--t);
+}
+
+.btn-primary-solo:hover{background:#5fea8e;transform:translateY(-1px);box-shadow:0 4px 20px rgba(74,222,128,.3);}
+.btn-primary-solo:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+
+/* ===== ACCORDION EXPERIENCE ===== */
+.acc-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  margin-bottom:8px;
+  overflow:hidden;
+  transition:border-color var(--t);
+}
+
+.acc-card.open{border-color:var(--green-border);}
+
+.acc-header{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:13px 16px;
+  cursor:pointer;
+  user-select:none;
+  transition:background var(--t);
+}
+
+.acc-header:hover{background:var(--surface2);}
+
+.acc-header-left{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex:1;
+  min-width:0;
+}
+
+.acc-num{
+  width:22px;height:22px;min-width:22px;
+  border-radius:5px;
+  background:var(--surface3);
+  border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10.5px;
+  font-weight:600;
+  color:var(--text3);
+  font-variant-numeric:tabular-nums;
+  transition:all var(--t);
+}
+
+.acc-card.open .acc-num{
+  background:var(--green-dim);
+  border-color:var(--green-border);
+  color:var(--green);
+}
+
+.acc-label{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.acc-sub{font-size:11px;color:var(--text3);}
+.acc-remove-btn{font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;padding:4px 6px;border-radius:4px;transition:all var(--t);flex-shrink:0;}
+.acc-remove-btn:hover{background:var(--danger-dim);color:var(--danger);}
+.acc-chevron{font-size:9px;color:var(--text3);transition:transform .25s ease;flex-shrink:0;}
+.acc-card.open .acc-chevron{transform:rotate(180deg);color:var(--green);}
+
+.acc-body{max-height:0;overflow:hidden;transition:max-height .4s cubic-bezier(.4,0,.2,1);border-top:0px solid var(--border);}
+.acc-card.open .acc-body{max-height:3200px;border-top-width:1px;}
+.acc-body-inner{padding:20px 16px 22px;}
+
+.add-exp-btn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  width:100%;
+  padding:11px;
+  border:1px dashed var(--border);
+  border-radius:var(--r);
+  background:transparent;
+  color:var(--text3);
+  font-family:'Inter',sans-serif;
+  font-size:13px;
+  font-weight:500;
+  cursor:pointer;
+  transition:all var(--t);
+}
+
+.add-exp-btn:hover{border-color:var(--green-border);color:var(--green);background:var(--green-dim);}
+
+/* ===== BLOCK DIVIDER ===== */
+.block-sep{
+  font-size:9.5px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  color:var(--text3);
+  padding:8px 0 6px;
+  border-bottom:1px solid var(--border);
+  margin-bottom:14px;
+  margin-top:18px;
+}
+
+/* ===== DATE ROW ===== */
+.date-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:480px){.date-row{grid-template-columns:1fr;}}
+
+/* ===== CONDITIONAL ===== */
+.cond-block{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--r2);
+  padding:14px 16px;
+  margin-top:10px;
+  display:none;
+}
+.cond-block.visible{display:block;}
+.cond-block .cond-label{font-size:12px;color:var(--green);font-weight:600;margin-bottom:8px;display:block;}
+.cond-block .cond-help{font-size:12px;color:var(--text3);margin-bottom:10px;line-height:1.5;font-weight:300;}
+
+/* ===== FERRAMENTAS PANEL ===== */
+.tools-trigger{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  width:100%;
+  padding:10px 13px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--r2);
+  cursor:pointer;
+  font-family:'Inter',sans-serif;
+  font-size:13px;
+  font-weight:400;
+  color:var(--text2);
+  transition:all var(--t);
+  user-select:none;
+}
+
+.tools-trigger:hover{border-color:var(--green-border);color:var(--green);background:var(--green-dim);}
+.tools-trigger.open{border-color:var(--green-border);background:var(--green-dim);color:var(--green);border-radius:var(--r2) var(--r2) 0 0;}
+.tools-trigger-label{flex:1;text-align:left;}
+.tools-count{font-size:10.5px;background:var(--green);color:#0C0C0E;border-radius:100px;padding:1px 7px;display:none;font-weight:700;}
+.tools-count.vis{display:inline-block;}
+.tools-chevron{font-size:9px;transition:transform .22s;}
+.tools-trigger.open .tools-chevron{transform:rotate(180deg);}
+
+.tools-panel{
+  display:none;
+  border:1px solid var(--green-border);
+  border-top:none;
+  border-radius:0 0 var(--r2) var(--r2);
+  background:var(--surface2);
+  padding:14px;
+}
+
+.tools-panel.open{display:block;}
+.tools-panel .chip-grid{margin-top:0;}
+
+/* add tag chip */
+.add-tag{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:6px 12px;
+  border:1px dashed var(--border2);
+  border-radius:100px;
+  cursor:text;
+  font-size:12px;font-weight:400;color:var(--text3);
+  background:transparent;font-style:italic;
+  transition:all var(--t);
+}
+.add-tag:hover{border-color:var(--green-border);color:var(--green);}
+.add-tag.typing{border-color:var(--green);border-style:solid;color:var(--text);font-style:normal;background:var(--green-dim);}
+.add-tag-inp{border:none;background:transparent;outline:none;font-family:'Inter',sans-serif;font-size:12px;color:var(--text);min-width:90px;max-width:150px;}
+
+/* ===== AUDIO RECORDER ===== */
+.audio-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:20px;
+  margin-bottom:12px;
+  transition:border-color var(--t);
+}
+
+.audio-card.done-state{border-color:var(--green-border);background:rgba(74,222,128,.04);}
+
+.audio-card-header{
+  display:flex;
+  align-items:flex-start;
+  gap:14px;
+  margin-bottom:14px;
+}
+
+.audio-card-icon{
+  width:36px;height:36px;min-width:36px;
+  border-radius:8px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;
+}
+
+.audio-card-title{font-size:13.5px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.audio-card-desc{font-size:12.5px;color:var(--text2);line-height:1.6;font-weight:300;}
+
+.audio-badge-required{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:10.5px;font-weight:600;
+  color:var(--danger);
+  background:var(--danger-dim);
+  border:1px solid rgba(248,113,113,.2);
+  padding:2px 8px;border-radius:100px;
+  margin-bottom:12px;
+}
+
+.audio-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+
+.btn-record{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:10px 18px;
+  background:var(--surface2);
+  color:var(--text);
+  border:1px solid var(--border);
+  border-radius:var(--r2);
+  font-family:'Inter',sans-serif;
+  font-size:13px;font-weight:600;
+  cursor:pointer;
+  transition:all var(--t);
+}
+
+.btn-record:hover{border-color:var(--border2);background:var(--surface3);}
+.btn-record .rec-dot{width:8px;height:8px;border-radius:50%;background:var(--danger);display:inline-block;flex-shrink:0;}
+.btn-record.recording{background:var(--danger-dim);border-color:rgba(248,113,113,.3);color:var(--danger);}
+.btn-record.recording .rec-dot{animation:blink 1s infinite;}
+.btn-record.done-rec{background:var(--green-dim);border-color:var(--green-border);color:var(--green);}
+
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+.audio-timer-wrap{display:none;align-items:center;gap:6px;}
+.audio-timer-wrap.vis{display:flex;}
+.audio-timer{font-size:12px;color:var(--danger);font-weight:600;font-variant-numeric:tabular-nums;}
+.audio-timer-bar{width:80px;height:3px;background:var(--surface3);border-radius:10px;overflow:hidden;}
+.audio-timer-fill{height:100%;background:var(--danger);border-radius:10px;transition:width 1s linear;}
+
+.audio-ok-badge{display:none;align-items:center;gap:5px;font-size:12px;color:var(--green);font-weight:600;margin-top:10px;}
+.audio-ok-badge.vis{display:flex;}
+
+audio.audio-playback{display:none;width:100%;margin-top:10px;border-radius:4px;filter:invert(1) hue-rotate(90deg);opacity:.7;}
+audio.audio-playback.vis{display:block;}
+
+.audio-req-msg{display:none;font-size:12px;color:var(--danger);margin-top:6px;}
+.audio-req-msg.show{display:block;}
+
+/* ===== UPLOAD AREA ===== */
+.upload-zone{
+  border:1px dashed var(--border);
+  border-radius:var(--r2);
+  padding:20px;
+  text-align:center;
+  cursor:pointer;
+  transition:all var(--t);
+  background:var(--surface2);
+  font-size:12.5px;
+  color:var(--text3);
+  display:block;
+}
+
+.upload-zone:hover{border-color:var(--green-border);background:var(--green-dim);color:var(--green);}
+.upload-zone input{display:none;}
+.upload-zone-icon{font-size:22px;margin-bottom:6px;display:block;}
+.upload-zone-label{font-weight:500;color:var(--text2);display:block;margin-bottom:3px;}
+.upload-zone-sub{font-size:11px;color:var(--text3);}
+
+/* ===== REVIEW ===== */
+.review-section-title{
+  font-size:10px;font-weight:700;
+  text-transform:uppercase;letter-spacing:1px;
+  color:var(--text3);
+  padding-bottom:8px;
+  border-bottom:1px solid var(--border);
+  margin-bottom:10px;
+  margin-top:22px;
+}
+
+.review-item{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--r2);
+  padding:11px 14px;
+  margin-bottom:6px;
+  font-size:13px;
+  color:var(--text2);
+  line-height:1.6;
+}
+
+.review-item strong{color:var(--green);display:block;font-size:11.5px;font-weight:600;margin-bottom:2px;}
+
+.final-statement{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-left:2px solid var(--green);
+  border-radius:0 var(--r2) var(--r2) 0;
+  padding:16px 18px;
+  margin-bottom:24px;
+  font-size:13.5px;
+  color:var(--text2);
+  line-height:1.7;
+  font-weight:300;
+}
+
+.final-statement .final-sig{
+  margin-top:8px;
+  font-size:11px;
+  color:var(--green);
+  font-weight:600;
+  letter-spacing:.3px;
+}
+
+/* ===== WELCOME BULLETS ===== */
+.feature-list{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin:20px 0 28px;
+}
+
+.feature-item{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:11px 14px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r2);
+  font-size:13px;
+  color:var(--text2);
+  font-weight:400;
+}
+
+.feature-item-icon{
+  width:24px;height:24px;min-width:24px;
+  border-radius:5px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;
+}
+
+/* ===== SUCCESS ===== */
+.success-screen{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:60px 32px;
+  min-height:60vh;
+}
+
+.success-icon-wrap{
+  width:72px;height:72px;
+  border-radius:16px;
+  background:var(--green-dim);
+  border:1px solid var(--green-border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:30px;
+  margin:0 auto 24px;
+}
+
+/* ===== TOAST ===== */
+#toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--surface3);color:var(--text);
+  border:1px solid var(--border2);
+  padding:10px 18px;border-radius:var(--r2);
+  font-size:13px;z-index:999;opacity:0;
+  transition:opacity .25s;max-width:90vw;text-align:center;
+  pointer-events:none;box-shadow:0 4px 24px rgba(0,0,0,.5);
+}
+
+/* ===== TRANSITION TEXT ===== */
+.trans-banner{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r2);
+  padding:16px 18px;
+  margin-bottom:20px;
+  text-align:center;
+}
+
+.trans-banner p{font-size:13.5px;color:var(--text2);font-weight:300;line-height:1.6;}
+.trans-banner strong{color:var(--text);font-weight:600;}
+
+/* ===== CARGO OUTRO ===== */
+.cargo-outro-chip{white-space:nowrap;}
+.cargo-outro-chip.editing{border-color:var(--green);background:var(--green-dim);}
+.cargo-outro-chip.editing .chip-plus{display:none;}
+.cargo-outro-chip.editing .co-label{display:none;}
+.cargo-outro-chip.editing .co-input{display:inline-block!important;}
+.cargo-outro-chip.sel .co-label{display:none;}
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media(max-width:768px){
+  .sidebar{display:none;}
+  .main{margin-left:0;}
+  .topbar{padding:0 16px;}
+  .content{padding:24px 16px 80px;}
+
+  /* mobile bottom nav */
+  .mob-nav{
+    display:flex;
+    position:fixed;
+    bottom:0;left:0;right:0;
+    background:rgba(17,17,20,.95);
+    backdrop-filter:blur(12px);
+    border-top:1px solid var(--border);
+    padding:10px 16px 18px;
+    gap:8px;
+    z-index:60;
+  }
+
+  .mob-nav .btn-back{flex:0 0 auto;}
+  .mob-nav .btn-primary{flex:1;}
+}
+
+@media(min-width:769px){
+  .mob-nav{display:none!important;}
+}
+
+/* ===== MISC ===== */
+.divider{height:1px;background:var(--border);margin:20px 0;}
+
+/* ===== WELCOME SCREEN REDESIGN ===== */
+.welcome-eyebrow{
+  font-size:11px;
+  font-weight:500;
+  color:var(--text3);
+  letter-spacing:.4px;
+  margin-bottom:40px;
+}
+
+.welcome-hero{margin-bottom:36px;}
+
+.welcome-title{
+  font-size:clamp(26px,3.5vw,36px);
+  font-weight:600;
+  color:var(--text);
+  letter-spacing:-1.2px;
+  line-height:1.12;
+  margin-bottom:14px;
+}
+
+.welcome-title-sub{
+  color:var(--text2);
+  font-weight:400;
+  font-size:inherit;
+  letter-spacing:inherit;
+}
+
+.welcome-subtitle{
+  font-size:14px;
+  color:var(--text2);
+  line-height:1.72;
+  font-weight:300;
+  max-width:500px;
+}
+
+.welcome-cards{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-bottom:28px;
+}
+
+@media(max-width:600px){.welcome-cards{grid-template-columns:1fr;}}
+
+.welcome-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  transition:border-color var(--t);
+}
+
+.welcome-card:hover{border-color:var(--border2);}
+
+.welcome-card-icon{
+  font-size:18px;
+  line-height:1;
+  margin-bottom:6px;
+}
+
+.welcome-card-title{
+  font-size:13px;
+  font-weight:600;
+  color:var(--text);
+  letter-spacing:-.2px;
+}
+
+.welcome-card-desc{
+  font-size:11.5px;
+  color:var(--text3);
+  line-height:1.55;
+  font-weight:300;
+}
+
+.welcome-section-label{
+  font-size:9.5px;
+  font-weight:700;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  color:var(--text3);
+  margin-bottom:10px;
+}
+
+.welcome-q-card{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r2);
+  padding:13px 16px;
+  margin-bottom:6px;
+  font-size:13px;
+  color:var(--text2);
+  font-weight:400;
+  transition:border-color var(--t);
+}
+
+.welcome-q-card:hover{border-color:var(--border2);}
+
+.welcome-q-dot{
+  width:7px;height:7px;min-width:7px;
+  border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 8px rgba(74,222,128,.55);
+  flex-shrink:0;
+}
+
+.welcome-cta{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:28px;
+  padding-top:22px;
+  border-top:1px solid var(--border);
+}
+
+.welcome-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:12px 26px;
+  background:var(--green);
+  color:#0C0C0E;
+  border:none;
+  border-radius:var(--r2);
+  font-family:'Inter',sans-serif;
+  font-size:13.5px;
+  font-weight:600;
+  cursor:pointer;
+  transition:all var(--t);
+  letter-spacing:-.1px;
+}
+
+.welcome-btn:hover{
+  background:#5fea8e;
+  transform:translateY(-1px);
+  box-shadow:0 4px 16px rgba(74,222,128,.28);
+}
+
+.welcome-btn:active{transform:translateY(0);box-shadow:none;}
+
+/* ===== SIDEBAR REDESIGN ===== */
+/* Override numbered step indicator with minimal dot */
+.step-indicator{
+  width:7px;height:7px;min-width:7px;
+  border-radius:50%;
+  border:none;
+  background:var(--border2);
+  font-size:0;
+  color:transparent;
+}
+
+.sidebar-step.active .step-indicator{
+  background:var(--green);
+  box-shadow:0 0 8px rgba(74,222,128,.5);
+}
+
+.sidebar-step.done .step-indicator{
+  background:var(--green);
+  box-shadow:none;
+}
+
+/* Remove connector lines */
+.sidebar-step:not(:last-child)::after{display:none;}
+
+/* Remove sub-labels */
+.step-sub{display:none;}
+
+.step-name{
+  font-size:13px;
+  font-weight:500;
+  letter-spacing:-.15px;
+}
+
+.sidebar-step{padding:10px 12px;}
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<div class="app-shell">
+
+  <!-- ============================
+       SIDEBAR
+  ============================= -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-dot"></div>
+      <div class="sidebar-logo-text">Método <span>Vértice</span></div>
+    </div>
+
+    <nav class="sidebar-steps" id="sidebarSteps">
+      <!-- Rendered by JS -->
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-progress-bar">
+        <div class="sidebar-progress-fill" id="sidebarFill" style="width:5%"></div>
+      </div>
+      <div class="sidebar-progress-label" id="sidebarLabel">Iniciando…</div>
+    </div>
+  </aside>
+
+  <!-- ============================
+       MAIN
+  ============================= -->
+  <main class="main">
+
+    <!-- top bar -->
+    <div class="topbar">
+      <div class="topbar-breadcrumb">
+        <span>Vértice</span>
+        <span class="sep">/</span>
+        <span class="current" id="topbarCurrent">Bem-vindo</span>
+      </div>
+      <div class="topbar-meta">
+        <span class="topbar-step-badge" id="topbarBadge">Início</span>
+      </div>
+    </div>
+
+    <!-- content -->
+    <div class="content">
+
+      <!-- ===================== SCREEN 1 — BOAS-VINDAS ===================== -->
+      <div class="screen active" id="screen-1">
+
+        <div class="welcome-eyebrow">← Bem-vindo ao Método Vértice</div>
+
+        <div class="welcome-hero">
+          <h1 class="welcome-title">
+            Bem-vindo.<br>
+            <span class="welcome-title-sub">Vamos nessa juntos?</span>
+          </h1>
+          <p class="welcome-subtitle">Vértice vai montar seu perfil do seu jeito, pra você ser visto por quem importa. Em qualquer vaga, em qualquer setor.</p>
+        </div>
+
+        <div class="welcome-cards">
+          <div class="welcome-card">
+            <div class="welcome-card-icon">👤</div>
+            <div class="welcome-card-title">Perfil</div>
+            <div class="welcome-card-desc">Quem você é e o que define seu jeito de trabalhar</div>
+          </div>
+          <div class="welcome-card">
+            <div class="welcome-card-icon">🎯</div>
+            <div class="welcome-card-title">Objetivos</div>
+            <div class="welcome-card-desc">O que você busca e pra onde quer ir</div>
+          </div>
+          <div class="welcome-card">
+            <div class="welcome-card-icon">💼</div>
+            <div class="welcome-card-title">Experiências</div>
+            <div class="welcome-card-desc">Tudo que já fez, do jeito que foi</div>
+          </div>
+        </div>
+
+        <div class="welcome-section-label">Descubra por aqui</div>
+
+        <div class="welcome-q-card">
+          <div class="welcome-q-dot"></div>
+          <span>Quais palavras mais combinam com você?</span>
+        </div>
+        <div class="welcome-q-card">
+          <div class="welcome-q-dot"></div>
+          <span>Que tipo de vaga você quer focar?</span>
+        </div>
+        <div class="welcome-q-card">
+          <div class="welcome-q-dot"></div>
+          <span>O que já foi de verdade na sua vida?</span>
+        </div>
+
+        <div class="welcome-cta">
+          <button class="welcome-btn" onclick="goTo(2)">Começar agora →</button>
+        </div>
+
+      </div>
+
+      <!-- ===================== SCREEN 2 — PERFIL ===================== -->
+      <div class="screen" id="screen-2">
+        <div class="page-header">
+          <div class="page-eyebrow">Etapa 1 de 8 — Perfil</div>
+          <h1 class="page-title">Vamos fazer isso juntos?</h1>
+          <p class="page-desc">Antes de começar, me conta um pouco sobre você.</p>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-header">
+            <div class="section-card-icon">👤</div>
+            <div class="section-card-title">Seus dados de contato</div>
+          </div>
+          <div class="section-card-body">
+            <div class="field-wrap">
+              <input type="text" id="nome-completo" placeholder="Ex.: Ana Paula Souza" autocomplete="name" />
+              <label>Seu nome completo</label>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+              <div class="field-wrap">
+                <input type="text" id="cidade" placeholder="Ex.: São Paulo" />
+                <label>Cidade</label>
+              </div>
+              <div class="field-wrap">
+                <input type="text" id="estado" placeholder="Ex.: SP" maxlength="2" style="text-transform:uppercase;" />
+                <label>Estado (UF)</label>
+              </div>
+            </div>
+            <div class="field-wrap" style="margin-top:12px;">
+              <input type="tel" id="telefone" placeholder="Ex.: (11) 99999-0000" autocomplete="tel" />
+              <label>Telefone / WhatsApp</label>
+            </div>
+            <div class="field-wrap" style="margin-top:12px;">
+              <input type="email" id="email-contato" placeholder="Ex.: ana@email.com" autocomplete="email" />
+              <label>E-mail</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-header">
+            <div class="section-card-icon">✨</div>
+            <div class="section-card-title">Palavras que combinam com você</div>
+          </div>
+          <div class="section-card-body">
+            <div class="field-group">
+              <span class="field-label-plain">Quais dessas palavras mais combinam com você?</span>
+              <div class="field-sublabel">Selecione até 5.</div>
+              <div class="chip-grid" id="palavras-positivas">
+                <label class="chip"><input type="checkbox" name="pos" value="adaptável"/><span class="chip-plus">+</span><span>adaptável</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="analítico"/><span class="chip-plus">+</span><span>analítico</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="assertivo"/><span class="chip-plus">+</span><span>assertivo</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="autônomo"/><span class="chip-plus">+</span><span>autônomo</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="carismático"/><span class="chip-plus">+</span><span>carismático</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="colaborativo"/><span class="chip-plus">+</span><span>colaborativo</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="comunicativo"/><span class="chip-plus">+</span><span>comunicativo</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="confiável"/><span class="chip-plus">+</span><span>confiável</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="consistente"/><span class="chip-plus">+</span><span>consistente</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="criativo"/><span class="chip-plus">+</span><span>criativo</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="criterioso"/><span class="chip-plus">+</span><span>criterioso</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="diligente"/><span class="chip-plus">+</span><span>diligente</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="diplomático"/><span class="chip-plus">+</span><span>diplomático</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="disciplinado"/><span class="chip-plus">+</span><span>disciplinado</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="discreto"/><span class="chip-plus">+</span><span>discreto</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="dinâmico"/><span class="chip-plus">+</span><span>dinâmico</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="eficiente"/><span class="chip-plus">+</span><span>eficiente</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="empático"/><span class="chip-plus">+</span><span>empático</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="estratégico"/><span class="chip-plus">+</span><span>estratégico</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="ético"/><span class="chip-plus">+</span><span>ético</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="focado"/><span class="chip-plus">+</span><span>focado</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="inovador"/><span class="chip-plus">+</span><span>inovador</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="organizado"/><span class="chip-plus">+</span><span>organizado</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="persistente"/><span class="chip-plus">+</span><span>persistente</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="persuasivo"/><span class="chip-plus">+</span><span>persuasivo</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="proativo"/><span class="chip-plus">+</span><span>proativo</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="resiliente"/><span class="chip-plus">+</span><span>resiliente</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="respeitoso"/><span class="chip-plus">+</span><span>respeitoso</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="responsável"/><span class="chip-plus">+</span><span>responsável</span></label>
+                <label class="chip"><input type="checkbox" name="pos" value="versátil"/><span class="chip-plus">+</span><span>versátil</span></label>
+              </div>
+              <p class="field-hint" id="aviso-pos" style="display:none;color:var(--green);">Você já escolheu 5. Desmarque uma pra trocar.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-header">
+            <div class="section-card-icon">🔍</div>
+            <div class="section-card-title">Palavras presentes na sua vida</div>
+          </div>
+          <div class="section-card-body">
+            <div class="field-group">
+              <span class="field-label-plain">Quais dessas palavras soam mais presentes na sua vida?</span>
+              <div class="field-sublabel">Selecione até 5. Seja sincero — a ideia não é te julgar, é te entender.</div>
+              <div class="chip-grid" id="palavras-negativas">
+                <label class="chip"><input type="checkbox" name="neg" value="ansioso"/><span class="chip-plus">+</span><span>ansioso</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="inseguro"/><span class="chip-plus">+</span><span>inseguro</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="impaciente"/><span class="chip-plus">+</span><span>impaciente</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="disperso"/><span class="chip-plus">+</span><span>disperso</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="desorganizado"/><span class="chip-plus">+</span><span>desorganizado</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="procrastinador"/><span class="chip-plus">+</span><span>procrastinador</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="carente"/><span class="chip-plus">+</span><span>carente</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="indeciso"/><span class="chip-plus">+</span><span>indeciso</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="impulsivo"/><span class="chip-plus">+</span><span>impulsivo</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="imediatista"/><span class="chip-plus">+</span><span>imediatista</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="acomodado"/><span class="chip-plus">+</span><span>acomodado</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="preguiçoso"/><span class="chip-plus">+</span><span>preguiçoso</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="dependente"/><span class="chip-plus">+</span><span>dependente</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="sensível"/><span class="chip-plus">+</span><span>sensível</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="reativo"/><span class="chip-plus">+</span><span>reativo</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="teimoso"/><span class="chip-plus">+</span><span>teimoso</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="distraído"/><span class="chip-plus">+</span><span>distraído</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="desatento"/><span class="chip-plus">+</span><span>desatento</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="apressado"/><span class="chip-plus">+</span><span>apressado</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="instável"/><span class="chip-plus">+</span><span>instável</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="ciumento"/><span class="chip-plus">+</span><span>ciumento</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="fechado"/><span class="chip-plus">+</span><span>fechado</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="dramático"/><span class="chip-plus">+</span><span>dramático</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="irritadiço"/><span class="chip-plus">+</span><span>irritadiço</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="individualista"/><span class="chip-plus">+</span><span>individualista</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="orgulhoso"/><span class="chip-plus">+</span><span>orgulhoso</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="superficial"/><span class="chip-plus">+</span><span>superficial</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="desmotivado"/><span class="chip-plus">+</span><span>desmotivado</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="inconstante"/><span class="chip-plus">+</span><span>inconstante</span></label>
+                <label class="chip"><input type="checkbox" name="neg" value="descontrolado"/><span class="chip-plus">+</span><span>descontrolado</span></label>
+              </div>
+              <p class="field-hint" id="aviso-neg" style="display:none;color:var(--green);">Você já escolheu 5. Desmarque uma pra trocar.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-back" onclick="goTo(1)">← Voltar</button>
+          <button class="btn-primary" onclick="goTo(3)">Continuar →</button>
+        </div>
+        <div class="mob-nav">
+          <button class="btn-back" onclick="goTo(1)">←</button>
+          <button class="btn-primary" onclick="goTo(3)">Continuar →</button>
+        </div>
+      </div>
+
+      <!-- ===================== SCREEN 3 — OBJETIVO ===================== -->
+      <div class="screen" id="screen-3">
+        <div class="page-header">
+          <div class="page-eyebrow">Etapa 2 de 8 — Objetivo</div>
+          <h1 class="page-title">Que tipo de vaga você quer buscar agora?</h1>
+          <p class="page-desc">Me conta o que tá na sua cabeça. Pode ser simples.</p>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-header">
+            <div class="section-card-icon">🎯</div>
+            <div class="section-card-title">Vaga desejada</div>
+          </div>
+          <div class="section-card-body">
+            <div class="field-wrap">
+              <input type="text" id="objetivo" placeholder="Ex.: atendimento, vendas, administrativo…" />
+              <label>Que tipo de vaga você quer buscar?</label>
+            </div>
+            <p class="field-hint">Só preciso entender que tipo de vaga você busca, pra ajustar a comunicação do seu currículo. <em>Ex.: vendas, atendimento, logística</em></p>
+
+            <div style="margin-top:16px;">
+              <div class="field-wrap">
+                <input type="text" id="cargo-alvo" placeholder="Ex.: vendedor, atendente, auxiliar…" />
+                <label>Qual dos cargos citados acima você prefere?</label>
+              </div>
+              <p class="field-hint"><em>Ex.: vendedor, atendente, auxiliar administrativo, recepcionista</em></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-header">
+            <div class="section-card-icon">🏢</div>
+            <div class="section-card-title">Formato de trabalho</div>
+          </div>
+          <div class="section-card-body">
+            <span class="field-label-plain">Como você prefere trabalhar?</span>
+            <div class="chip-grid">
+              <label class="chip"><input type="radio" name="modalidade" value="presencial"/><span class="chip-plus">+</span><span>Presencial</span></label>
+              <label class="chip"><input type="radio" name="modalidade" value="hibrido"/><span class="chip-plus">+</span><span>Híbrido</span></label>
+              <label class="chip"><input type="radio" name="modalidade" value="remoto"/><span class="chip-plus">+</span><span>Remoto</span></label>
+              <label class="chip"><input type="radio" name="modalidade" value="qualquer"/><span class="chip-plus">+</span><span>Tanto faz</span></label>
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-back" onclick="goTo(2)">← Voltar</button>
+          <button class="btn-primary" onclick="next3()">Continuar →</button>
+        </div>
+        <div class="mob-nav">
+          <button class="btn-back" onclick="goTo(2)">←</button>
+          <button class="btn-primary" onclick="next3()">Continuar →</button>
+        </div>
+      </div>
+
+      <!-- ===================== SCREEN 4 — TRAJETÓRIA ===================== -->
+      <div class="screen" id="screen-4">
+        <div class="page-header">
+          <div class="page-eyebrow">Etapa 3 de 8 — Trajetória</div>
+          <h1 class="page-title">Agora pensa em tudo que já contou como trabalho</h1>
+        </div>
+
+        <div class="notice">
+          <span>📋</span>
+          <div>Aqui vale vida real. Emprego com registro, sem registro, bico, freelance, ajuda em negócio da família, venda por conta, serviço, entrega, atendimento, internet e qualquer coisa que te deu experiência de verdade.</div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-header">
+            <div class="section-card-icon">✅</div>
+            <div class="section-card-title">Qual dessas coisas já fez parte da sua vida?</div>
+          </div>
+          <div class="section-card-body">
+            <div class="field-sublabel">Marca tudo que já fez parte da sua trajetória, mesmo se tiver sido algo simples.</div>
+            <div class="chip-grid">
+              <label class="chip"><input type="checkbox" name="trajetoria" value="Trabalhei registrado"/><span class="chip-plus">+</span><span>Trabalhei registrado</span></label>
+              <label class="chip"><input type="checkbox" name="trajetoria" value="Trabalhei sem registro"/><span class="chip-plus">+</span><span>Trabalhei sem registro</span></label>
+              <label class="chip"><input type="checkbox" name="trajetoria" value="Fiz bico"/><span class="chip-plus">+</span><span>Fiz bico</span></label>
+              <label class="chip"><input type="checkbox" name="trajetoria" value="Vendi por conta própria"/><span class="chip-plus">+</span><span>Vendi por conta própria</span></label>
+              <label class="chip"><input type="checkbox" name="trajetoria" value="Ajudei negócio da família"/><span class="chip-plus">+</span><span>Ajudei negócio da família</span></label>
+              <label class="chip"><input type="checkbox" name="trajetoria" value="Fiz freelance"/><span class="chip-plus">+</span><span>Fiz freelance</span></label>
+              <label class="chip"><input type="checkbox" name="trajetoria" value="Atendi clientes"/><span class="chip-plus">+</span><span>Atendi clientes</span></label>
+              <label class="chip"><input type="checkbox" name="trajetoria" value="Trabalhei com internet"/><span class="chip-plus">+</span><span>Trabalhei com internet</span></label>
+              <label class="chip"><input type="checkbox" name="trajetoria" value="Fiz entregas"/><span class="chip-plus">+</span><span>Fiz entregas</span></label>
+              <label class="chip"><input type="checkbox" name="trajetoria" value="Organizei estoque"/><span class="chip-plus">+</span><span>Organizei estoque</span></label>
+              <label class="chip"><input type="checkbox" name="trajetoria" value="Cuidei de caixa ou pagamentos"/><span class="chip-plus">+</span><span>Cuidei de caixa ou pagamentos</span></label>
+              <label class="chip"><input type="checkbox" name="trajetoria" value="Divulguei produto ou serviço"/><span class="chip-plus">+</span><span>Divulguei produto ou serviço</span></label>
+              <label class="chip"><input type="checkbox" name="trajetoria" value="Cuidei de agenda"/><span class="chip-plus">+</span><span>Cuidei de agenda</span></label>
+              <label class="chip"><input type="checkbox" name="trajetoria" value="Obra, produção ou serviço manual"/><span class="chip-plus">+</span><span>Obra, produção ou serviço manual</span></label>
+              <label class="chip"><input type="checkbox" name="trajetoria" value="Fiz estágio"/><span class="chip-plus">+</span><span>Fiz estágio</span></label>
+              <label class="chip"><input type="checkbox" name="trajetoria" value="Participei de projeto"/><span class="chip-plus">+</span><span>Participei de projeto</span></label>
+              <label class="chip"><input type="checkbox" name="trajetoria" value="Outro"/><span class="chip-plus">+</span><span>Outro</span></label>
+            </div>
+          </div>
+        </div>
+
+        <div class="trans-banner">
+          <p><strong>Boa.</strong> Agora vamos colocar uma experiência de cada vez.</p>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-back" onclick="goTo(3)">← Voltar</button>
+          <button class="btn-primary" onclick="goTo(5)">Adicionar minha primeira experiência →</button>
+        </div>
+        <div class="mob-nav">
+          <button class="btn-back" onclick="goTo(3)">←</button>
+          <button class="btn-primary" onclick="goTo(5)">Próxima etapa →</button>
+        </div>
+      </div>
+
+      <!-- ===================== SCREEN 5 — EXPERIÊNCIAS ===================== -->
+      <div class="screen" id="screen-5">
+        <div class="page-header">
+          <div class="page-eyebrow">Etapa 4 de 8 — Experiências</div>
+          <h1 class="page-title">Agora vamos organizar suas experiências</h1>
+          <p class="page-desc">Não precisa escrever bonito e nem lembrar de tudo certinho. Só me conta o que foi real, do jeito mais simples possível.</p>
+        </div>
+
+        <div id="experiences-container"></div>
+
+        <button class="add-exp-btn" onclick="addExperience()">+ Adicionar outra experiência</button>
+
+        <div class="btn-row" style="margin-top:20px;">
+          <button class="btn-back" onclick="goTo(4)">← Voltar</button>
+          <button class="btn-primary" onclick="goTo(6)">Continuar →</button>
+        </div>
+        <div class="mob-nav">
+          <button class="btn-back" onclick="goTo(4)">←</button>
+          <button class="btn-primary" onclick="goTo(6)">Continuar →</button>
+        </div>
+      </div>
+
+      <!-- ===================== SCREEN 6 — FORMAÇÃO ===================== -->
+      <div class="screen" id="screen-6">
+        <div class="page-header">
+          <div class="page-eyebrow">Etapa 5 de 8 — Formação e habilidades</div>
+          <h1 class="page-title">Agora vamos completar seu perfil</h1>
+          <p class="page-desc">Essa parte ajuda a fechar melhor seu currículo. Responde do jeito mais simples possível.</p>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-header">
+            <div class="section-card-icon">🎓</div>
+            <div class="section-card-title">Escolaridade</div>
+          </div>
+          <div class="section-card-body">
+            <span class="field-label-plain">Até onde você estudou?</span>
+            <div class="chip-grid" id="escolaridade-grid">
+              <label class="chip"><input type="radio" name="escolaridade" value="fund-inc"/><span class="chip-plus">+</span><span>Fundamental incompleto</span></label>
+              <label class="chip"><input type="radio" name="escolaridade" value="fund-comp"/><span class="chip-plus">+</span><span>Fundamental completo</span></label>
+              <label class="chip"><input type="radio" name="escolaridade" value="med-inc"/><span class="chip-plus">+</span><span>Médio incompleto</span></label>
+              <label class="chip"><input type="radio" name="escolaridade" value="med-comp"/><span class="chip-plus">+</span><span>Médio completo</span></label>
+              <label class="chip"><input type="radio" name="escolaridade" value="sup-inc"/><span class="chip-plus">+</span><span>Superior incompleto</span></label>
+              <label class="chip"><input type="radio" name="escolaridade" value="sup-comp"/><span class="chip-plus">+</span><span>Superior completo</span></label>
+              <label class="chip"><input type="radio" name="escolaridade" value="tec"/><span class="chip-plus">+</span><span>Técnico</span></label>
+              <label class="chip"><input type="radio" name="escolaridade" value="pos"/><span class="chip-plus">+</span><span>Pós-graduação</span></label>
+            </div>
+
+            <div id="campo-curso" style="display:none;margin-top:16px;">
+              <div class="field-wrap">
+                <input type="text" id="curso-formacao" placeholder="Ex.: Administração, T.I., Enfermagem…"/>
+                <label>Qual curso ou área?</label>
+              </div>
+            </div>
+
+            <div style="margin-top:16px;">
+              <span class="field-label-plain">Você estuda hoje?</span>
+              <div class="chip-grid">
+                <label class="chip"><input type="radio" name="estudando" value="sim"/><span class="chip-plus">+</span><span>Sim</span></label>
+                <label class="chip"><input type="radio" name="estudando" value="nao"/><span class="chip-plus">+</span><span>Não</span></label>
+                <label class="chip"><input type="radio" name="estudando" value="pretendo"/><span class="chip-plus">+</span><span>Pretendo começar</span></label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-header">
+            <div class="section-card-icon">📋</div>
+            <div class="section-card-title">Cursos e certificados <span class="opt-badge">opcional</span></div>
+          </div>
+          <div class="section-card-body">
+            <div class="field-sublabel">Pode ser online, presencial, curto ou longo. Tudo que você concluiu pode contar.</div>
+            <textarea class="plain" id="cursos" placeholder="Ex.: Excel, informática, atendimento, marketing, NR-35…"></textarea>
+            <p class="field-hint">Pode listar vários. Um por linha se quiser.</p>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-header">
+            <div class="section-card-icon">🛠️</div>
+            <div class="section-card-title">Ferramentas e experiências práticas</div>
+          </div>
+          <div class="section-card-body">
+            <span class="field-label-plain">Com quais dessas coisas você já trabalhou de verdade?</span>
+            <div class="field-sublabel">Clique para abrir as opções.</div>
+            <div>
+              <div class="tools-trigger" id="ferramentasTrigger" onclick="toggleFerramentasPanel()">
+                <span class="tools-trigger-label">Selecionar ferramentas e habilidades</span>
+                <span class="tools-count" id="ferramentasCount">0</span>
+                <span class="tools-chevron">▼</span>
+              </div>
+              <div class="tools-panel" id="ferramentasPanel">
+                <div class="chip-grid" id="ferramentas-options">
+                  <label class="chip"><input type="checkbox" value="whatsapp"/><span class="chip-plus">+</span><span>WhatsApp</span></label>
+                  <label class="chip"><input type="checkbox" value="whatsapp-atend"/><span class="chip-plus">+</span><span>Atendimento por WhatsApp</span></label>
+                  <label class="chip"><input type="checkbox" value="atend-presencial"/><span class="chip-plus">+</span><span>Atendimento presencial</span></label>
+                  <label class="chip"><input type="checkbox" value="atend-tel"/><span class="chip-plus">+</span><span>Atendimento telefônico</span></label>
+                  <label class="chip"><input type="checkbox" value="suporte"/><span class="chip-plus">+</span><span>Suporte ao cliente</span></label>
+                  <label class="chip"><input type="checkbox" value="vendas-online"/><span class="chip-plus">+</span><span>Vendas online</span></label>
+                  <label class="chip"><input type="checkbox" value="ecommerce"/><span class="chip-plus">+</span><span>E-commerce</span></label>
+                  <label class="chip"><input type="checkbox" value="prospeccao"/><span class="chip-plus">+</span><span>Prospecção</span></label>
+                  <label class="chip"><input type="checkbox" value="negociacao"/><span class="chip-plus">+</span><span>Negociação</span></label>
+                  <label class="chip"><input type="checkbox" value="pos-venda"/><span class="chip-plus">+</span><span>Pós-venda</span></label>
+                  <label class="chip"><input type="checkbox" value="crm"/><span class="chip-plus">+</span><span>CRM</span></label>
+                  <label class="chip"><input type="checkbox" value="excel"/><span class="chip-plus">+</span><span>Excel</span></label>
+                  <label class="chip"><input type="checkbox" value="planilhas"/><span class="chip-plus">+</span><span>Planilhas</span></label>
+                  <label class="chip"><input type="checkbox" value="word"/><span class="chip-plus">+</span><span>Word</span></label>
+                  <label class="chip"><input type="checkbox" value="office"/><span class="chip-plus">+</span><span>Pacote Office</span></label>
+                  <label class="chip"><input type="checkbox" value="gdocs"/><span class="chip-plus">+</span><span>Google Docs</span></label>
+                  <label class="chip"><input type="checkbox" value="gsheets"/><span class="chip-plus">+</span><span>Google Planilhas</span></label>
+                  <label class="chip"><input type="checkbox" value="digitacao"/><span class="chip-plus">+</span><span>Digitação</span></label>
+                  <label class="chip"><input type="checkbox" value="lancamento-dados"/><span class="chip-plus">+</span><span>Lançamento de dados</span></label>
+                  <label class="chip"><input type="checkbox" value="emissao-pedidos"/><span class="chip-plus">+</span><span>Emissão de pedidos</span></label>
+                  <label class="chip"><input type="checkbox" value="computador"/><span class="chip-plus">+</span><span>Computador</span></label>
+                  <label class="chip"><input type="checkbox" value="sistema-interno"/><span class="chip-plus">+</span><span>Sistema interno</span></label>
+                  <label class="chip"><input type="checkbox" value="sistema-loja"/><span class="chip-plus">+</span><span>Sistema de loja</span></label>
+                  <label class="chip"><input type="checkbox" value="instagram"/><span class="chip-plus">+</span><span>Instagram</span></label>
+                  <label class="chip"><input type="checkbox" value="redes-sociais"/><span class="chip-plus">+</span><span>Redes sociais</span></label>
+                  <label class="chip"><input type="checkbox" value="criacao-conteudo"/><span class="chip-plus">+</span><span>Criação de conteúdo</span></label>
+                  <label class="chip"><input type="checkbox" value="canva"/><span class="chip-plus">+</span><span>Canva</span></label>
+                  <label class="chip"><input type="checkbox" value="edicao-video"/><span class="chip-plus">+</span><span>Edição de vídeo</span></label>
+                  <label class="chip"><input type="checkbox" value="edicao-imagem"/><span class="chip-plus">+</span><span>Edição de imagem</span></label>
+                  <label class="chip"><input type="checkbox" value="marketing-digital"/><span class="chip-plus">+</span><span>Marketing digital</span></label>
+                  <label class="chip"><input type="checkbox" value="trafego-pago"/><span class="chip-plus">+</span><span>Tráfego pago</span></label>
+                  <label class="chip"><input type="checkbox" value="facebook-ads"/><span class="chip-plus">+</span><span>Facebook Ads</span></label>
+                  <label class="chip"><input type="checkbox" value="google-ads"/><span class="chip-plus">+</span><span>Google Ads</span></label>
+                  <label class="chip"><input type="checkbox" value="agenda"/><span class="chip-plus">+</span><span>Organização de agenda</span></label>
+                  <label class="chip"><input type="checkbox" value="agendamento"/><span class="chip-plus">+</span><span>Agendamento</span></label>
+                  <label class="chip"><input type="checkbox" value="caixa"/><span class="chip-plus">+</span><span>Caixa</span></label>
+                  <label class="chip"><input type="checkbox" value="maquininha"/><span class="chip-plus">+</span><span>Maquininha</span></label>
+                  <label class="chip"><input type="checkbox" value="estoque"/><span class="chip-plus">+</span><span>Estoque</span></label>
+                  <label class="chip"><input type="checkbox" value="logistica"/><span class="chip-plus">+</span><span>Logística</span></label>
+                  <label class="chip"><input type="checkbox" value="entregas"/><span class="chip-plus">+</span><span>Entregas</span></label>
+                  <label class="chip"><input type="checkbox" value="producao"/><span class="chip-plus">+</span><span>Produção</span></label>
+                  <label class="chip"><input type="checkbox" value="ferramentas-manuais"/><span class="chip-plus">+</span><span>Ferramentas manuais</span></label>
+                  <span class="add-tag" id="addTagChip" onclick="startAddTag()">
+                    <span>+ adicionar outra</span>
+                    <input type="text" class="add-tag-inp" id="addTagInput" placeholder="escreva aqui…" onkeydown="handleAddTag(event)" onblur="cancelAddTag()" style="display:none;"/>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-header">
+            <div class="section-card-icon">⚡</div>
+            <div class="section-card-title">Com o que você sente mais facilidade?</div>
+          </div>
+          <div class="section-card-body">
+            <div class="field-sublabel">Não precisa tentar parecer perfeito. Marca o que você sente que faz melhor.</div>
+            <div class="chip-grid" id="facilidades-options">
+              <label class="chip"><input type="checkbox"/><span class="chip-plus">+</span><span>Falar com pessoas</span></label>
+              <label class="chip"><input type="checkbox"/><span class="chip-plus">+</span><span>Organizar</span></label>
+              <label class="chip"><input type="checkbox"/><span class="chip-plus">+</span><span>Vender</span></label>
+              <label class="chip"><input type="checkbox"/><span class="chip-plus">+</span><span>Aprender rápido</span></label>
+              <label class="chip"><input type="checkbox"/><span class="chip-plus">+</span><span>Resolver problema</span></label>
+              <label class="chip"><input type="checkbox"/><span class="chip-plus">+</span><span>Manter atenção</span></label>
+              <label class="chip"><input type="checkbox"/><span class="chip-plus">+</span><span>Seguir processo</span></label>
+              <label class="chip"><input type="checkbox"/><span class="chip-plus">+</span><span>Trabalhar em equipe</span></label>
+              <label class="chip"><input type="checkbox"/><span class="chip-plus">+</span><span>Tocar sozinho o que precisa</span></label>
+              <label class="chip"><input type="checkbox"/><span class="chip-plus">+</span><span>Lidar com pressão</span></label>
+              <label class="chip"><input type="checkbox"/><span class="chip-plus">+</span><span>Outro</span></label>
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-back" onclick="goTo(5)">← Voltar</button>
+          <button class="btn-primary" onclick="goTo(7)">Continuar →</button>
+        </div>
+        <div class="mob-nav">
+          <button class="btn-back" onclick="goTo(5)">←</button>
+          <button class="btn-primary" onclick="goTo(7)">Continuar →</button>
+        </div>
+      </div>
+
+      <!-- ===================== SCREEN 7 — ÁUDIOS ===================== -->
+      <div class="screen" id="screen-7">
+        <div class="page-header">
+          <div class="page-eyebrow">Etapa 6 de 8 — Áudios</div>
+          <h1 class="page-title">Agora grave dois áudios rápidos</h1>
+          <p class="page-desc">Essa é uma parte muito importante do processo. Você não precisa falar bonito. Só fala de forma verdadeira, do seu jeito.</p>
+        </div>
+
+        <div class="notice">
+          <span>🎙️</span>
+          <div>Os áudios ajudam a entender nuances, contexto e verdade que o formulário não consegue captar. É um diferencial do Método Vértice.</div>
+        </div>
+
+        <!-- Audio 1 -->
+        <div class="audio-card" id="audioCard1">
+          <div class="audio-card-header">
+            <div class="audio-card-icon">👤</div>
+            <div>
+              <div class="audio-card-title">Áudio 1 — Sua vida pessoal</div>
+              <div class="audio-card-desc">Conta um pouco sobre sua vida, sua rotina, sua realidade, quem você é, como você vive hoje e o que faz parte da sua história.</div>
+            </div>
+          </div>
+          <div class="audio-badge-required">● Obrigatório · máx. 5 minutos</div>
+          <div class="audio-controls">
+            <button class="btn-record" id="recordBtn1" onclick="toggleRecord(1)">
+              <span class="rec-dot"></span> Gravar áudio
+            </button>
+            <div class="audio-timer-wrap" id="timerWrap1">
+              <span class="audio-timer" id="timer1">0:00</span>
+              <div class="audio-timer-bar"><div class="audio-timer-fill" id="timerFill1" style="width:0%"></div></div>
+            </div>
+          </div>
+          <audio class="audio-playback" id="playback1" controls></audio>
+          <div class="audio-ok-badge" id="badge1">✅ Áudio gravado com sucesso</div>
+          <div class="audio-req-msg" id="req1">Esse áudio é obrigatório para continuar.</div>
+        </div>
+
+        <!-- Audio 2 -->
+        <div class="audio-card" id="audioCard2">
+          <div class="audio-card-header">
+            <div class="audio-card-icon">💼</div>
+            <div>
+              <div class="audio-card-title">Áudio 2 — Sua vida profissional</div>
+              <div class="audio-card-desc">Conta sua trajetória profissional do seu jeito: onde já trabalhou, no que já ajudou, o que já vendeu, no que já teve experiência, mesmo que tenha sido informal.</div>
+            </div>
+          </div>
+          <div class="audio-badge-required">● Obrigatório · máx. 5 minutos</div>
+          <div class="audio-controls">
+            <button class="btn-record" id="recordBtn2" onclick="toggleRecord(2)">
+              <span class="rec-dot"></span> Gravar áudio
+            </button>
+            <div class="audio-timer-wrap" id="timerWrap2">
+              <span class="audio-timer" id="timer2">0:00</span>
+              <div class="audio-timer-bar"><div class="audio-timer-fill" id="timerFill2" style="width:0%"></div></div>
+            </div>
+          </div>
+          <audio class="audio-playback" id="playback2" controls></audio>
+          <div class="audio-ok-badge" id="badge2">✅ Áudio gravado com sucesso</div>
+          <div class="audio-req-msg" id="req2">Esse áudio é obrigatório para continuar.</div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-back" onclick="goTo(6)">← Voltar</button>
+          <button class="btn-primary" onclick="nextAudios()">Continuar →</button>
+        </div>
+        <div class="mob-nav">
+          <button class="btn-back" onclick="goTo(6)">←</button>
+          <button class="btn-primary" onclick="nextAudios()">Continuar →</button>
+        </div>
+      </div>
+
+      <!-- ===================== SCREEN 8 — MATERIAL EXTRA ===================== -->
+      <div class="screen" id="screen-8">
+        <div class="page-header">
+          <div class="page-eyebrow">Etapa 7 de 8 — Material extra <span class="opt-badge">opcional</span></div>
+          <h1 class="page-title">Se quiser, você pode mandar mais algumas coisas</h1>
+          <p class="page-desc">Isso é opcional. Só ajuda a deixar seu currículo ainda mais redondo.</p>
+        </div>
+
+        <div class="notice">
+          <strong>Por que isso ajuda?</strong>
+          Se tiver um currículo antigo, um texto do LinkedIn ou uma vaga específica, a IA consegue cruzar tudo e deixar seu currículo ainda mais completo.
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-header">
+            <div class="section-card-icon">📄</div>
+            <div class="section-card-title">Currículo antigo <span class="opt-badge">opcional</span></div>
+          </div>
+          <div class="section-card-body">
+            <label class="upload-zone">
+              <input type="file" id="curriculo-antigo" accept=".pdf,.doc,.docx,.txt"/>
+              <span class="upload-zone-icon">📄</span>
+              <span class="upload-zone-label">Clique aqui pra anexar seu currículo antigo</span>
+              <span class="upload-zone-sub">PDF, Word ou TXT</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-header">
+            <div class="section-card-icon">🔗</div>
+            <div class="section-card-title">LinkedIn <span class="opt-badge">opcional</span></div>
+          </div>
+          <div class="section-card-body">
+            <div class="field-wrap">
+              <input type="text" id="linkedin" placeholder="linkedin.com/in/seunome…"/>
+              <label>Texto ou link do LinkedIn</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-header">
+            <div class="section-card-icon">🎯</div>
+            <div class="section-card-title">Vaga de referência <span class="opt-badge">opcional</span></div>
+          </div>
+          <div class="section-card-body">
+            <textarea class="plain" id="vaga-ref" placeholder="Cole o link da vaga ou descreva o cargo e empresa…" style="min-height:72px;"></textarea>
+            <p class="field-hint">Se tiver, a gente pode adaptar o currículo especialmente pra essa vaga.</p>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-back" onclick="goTo(7)">← Voltar</button>
+          <button class="btn-primary" onclick="goTo(9)">Continuar →</button>
+          <button class="btn-secondary" onclick="goTo(9)">Pular</button>
+        </div>
+        <div class="mob-nav">
+          <button class="btn-back" onclick="goTo(7)">←</button>
+          <button class="btn-primary" onclick="goTo(9)">Continuar →</button>
+        </div>
+      </div>
+
+      <!-- ===================== SCREEN 9 — REVISÃO FINAL ===================== -->
+      <div class="screen" id="screen-9">
+        <div class="page-header">
+          <div class="page-eyebrow">Etapa 8 de 8 — Revisão final</div>
+          <h1 class="page-title">Agora é só revisar e enviar</h1>
+        </div>
+
+        <div class="final-statement">
+          <p>"Seu currículo vai ficar tão bom quanto a verdade que você colocou aqui. Você não precisa parecer perfeito. Você só precisa ter sido sincero."</p>
+          <div class="final-sig">— Método Vértice</div>
+        </div>
+
+        <div class="review-section-title">O que você quer conseguir</div>
+        <div id="review-objetivo" class="review-item"></div>
+
+        <div class="review-section-title">Suas experiências</div>
+        <div id="review-experiencias"></div>
+
+        <div class="review-section-title">Formação</div>
+        <div id="review-formacao" class="review-item"></div>
+
+        <div class="review-section-title">Habilidades</div>
+        <div id="review-habilidades" class="review-item"></div>
+
+        <div class="divider"></div>
+
+        <div class="notice">
+          <span>🚀</span>
+          <div>O Método Vértice pega sua trajetória, organiza tudo e direciona a comunicação do seu currículo do jeito certo — sem inventar e sem enrolação. Se quiser ajustar algo, clique em Voltar.</div>
+        </div>
+
+        <button class="btn-primary-solo" id="submitBtn" onclick="submitForm()">
+          Enviar minhas informações →
+        </button>
+
+        <div style="margin-top:10px;">
+          <button class="btn-back" onclick="goTo(8)" style="font-size:12px;color:var(--text3);">← Voltar e revisar</button>
+        </div>
+      </div>
+
+      <!-- ===================== SUCCESS ===================== -->
+      <div class="screen" id="screen-success">
+        <div class="success-screen">
+          <div class="success-icon-wrap">🎉</div>
+          <h1 class="page-title" style="margin-bottom:12px;">Pronto! Informações enviadas.</h1>
+          <p class="page-desc" style="margin:0 auto;max-width:400px;">O Método Vértice agora tem tudo que precisa pra transformar sua história em um currículo forte, claro e profissional. Em breve você vai receber seu currículo. Fique de olho!</p>
+          <div class="notice" style="margin-top:28px;text-align:left;max-width:400px;">
+            <span>✨</span>
+            <span>Você foi honesto. Você foi corajoso. Isso é o começo de uma nova fase.</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end .content -->
+  </main>
+</div><!-- end .app-shell -->
+
+<script>
+// ============================================================
+// STEPS CONFIG
+// ============================================================
+const STEPS = [
+  { id:1,  name:'Boas-vindas',    sub:'Início',           screen:1  },
+  { id:2,  name:'Perfil',         sub:'Suas palavras',    screen:2  },
+  { id:3,  name:'Objetivo',       sub:'Que vaga quer',    screen:3  },
+  { id:4,  name:'Trajetória',     sub:'O que já fez',     screen:4  },
+  { id:5,  name:'Experiências',   sub:'Seus trabalhos',   screen:5  },
+  { id:6,  name:'Formação',       sub:'Estudos e skills', screen:6  },
+  { id:7,  name:'Áudios',         sub:'Vida e carreira',  screen:7  },
+  { id:8,  name:'Material extra', sub:'Opcional',         screen:8  },
+  { id:9,  name:'Revisão',        sub:'Envio final',      screen:9  },
+];
+
+const SCREEN_PROGRESS = {1:5,2:15,3:27,4:38,5:50,6:62,7:74,8:86,9:100};
+const SCREEN_LABEL = {
+  1:'Bem-vindo',2:'Etapa 1 de 8',3:'Etapa 2 de 8',
+  4:'Etapa 3 de 8',5:'Etapa 4 de 8',6:'Etapa 5 de 8',
+  7:'Etapa 6 de 8',8:'Etapa 7 de 8',9:'Etapa 8 de 8'
+};
+
+// ============================================================
+// STATE
+// ============================================================
+let currentScreen = 1;
+let experienceCount = 0;
+
+// ============================================================
+// SIDEBAR RENDER
+// ============================================================
+function renderSidebar() {
+  const nav = document.getElementById('sidebarSteps');
+  nav.innerHTML = STEPS.map(s => {
+    const done = currentScreen > s.screen;
+    const active = currentScreen === s.screen;
+    const cls = done ? 'sidebar-step done' : active ? 'sidebar-step active' : 'sidebar-step';
+    return `<div class="${cls}">
+      <div class="step-indicator"></div>
+      <span class="step-name">${s.name}</span>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function goTo(n) {
+  document.getElementById(`screen-${currentScreen}`)?.classList.remove('active');
+  const next = document.getElementById(`screen-${n}`);
+  if (!next) return;
+  next.classList.add('active');
+  currentScreen = n;
+  if (n === 9) buildReview();
+  window.scrollTo({top:0,behavior:'smooth'});
+  updateProgress();
+  renderSidebar();
+}
+
+function goToSuccess() {
+  document.getElementById(`screen-${currentScreen}`)?.classList.remove('active');
+  document.getElementById('screen-success').classList.add('active');
+  document.querySelector('.sidebar').style.display = 'none';
+  document.querySelector('.topbar').style.display = 'none';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function updateProgress() {
+  const pct = SCREEN_PROGRESS[currentScreen] || 5;
+  document.getElementById('sidebarFill').style.width = pct + '%';
+  document.getElementById('sidebarLabel').textContent = SCREEN_LABEL[currentScreen] || '';
+  const step = STEPS.find(s => s.screen === currentScreen);
+  document.getElementById('topbarCurrent').textContent = step?.name || 'Bem-vindo';
+  document.getElementById('topbarBadge').textContent = SCREEN_LABEL[currentScreen] || 'Início';
+}
+
+// ============================================================
+// CHIP CLICKS — unified handler
+// ============================================================
+document.addEventListener('click', function(e) {
+  // Accordion
+  const accH = e.target.closest('.acc-header');
+  if (accH && !e.target.closest('.acc-remove-btn')) {
+    const card = accH.closest('.acc-card');
+    const isOpen = card.classList.contains('open');
+    document.querySelectorAll('.acc-card').forEach(c => c.classList.remove('open'));
+    if (!isOpen) card.classList.add('open');
+    return;
+  }
+
+  // Chips (both .chip and legacy .option-chip / .radio-chip)
+  const chip = e.target.closest('.chip, .option-chip, .radio-chip');
+  if (!chip) return;
+  const input = chip.querySelector('input');
+  if (!input) return;
+
+  if (input.type === 'checkbox') {
+    // 5-limit
+    const lim = {pos:'aviso-pos', neg:'aviso-neg'};
+    const grp = input.name;
+    if (lim[grp]) {
+      const grid = grp === 'pos' ? 'palavras-positivas' : 'palavras-negativas';
+      const count = document.querySelectorAll(`#${grid} input[name="${grp}"]:checked`).length;
+      if (!input.checked && count >= 5) {
+        document.getElementById(lim[grp]).style.display = 'block';
+        return;
+      }
+      input.checked = !input.checked;
+      chip.classList.toggle('sel', input.checked);
+      chip.classList.toggle('selected', input.checked);
+      document.getElementById(lim[grp]).style.display =
+        document.querySelectorAll(`#${grid} input[name="${grp}"]:checked`).length >= 5 ? 'block' : 'none';
+      return;
+    }
+    input.checked = !input.checked;
+    chip.classList.toggle('sel', input.checked);
+    chip.classList.toggle('selected', input.checked);
+  } else if (input.type === 'radio') {
+    document.querySelectorAll(`input[name="${input.name}"]`).forEach(r => {
+      const p = r.closest('.chip, .option-chip, .radio-chip');
+      p?.classList.remove('sel','selected');
+    });
+    input.checked = true;
+    chip.classList.add('sel','selected');
+    // escolaridade conditional
+    if (input.name === 'escolaridade') {
+      const show = ['sup-inc','sup-comp','tec','pos'];
+      const campo = document.getElementById('campo-curso');
+      if (campo) campo.style.display = show.includes(input.value) ? 'block' : 'none';
+    }
+  }
+});
+
+// "Não sei o cargo"
+document.addEventListener('click', function(e) {
+  if (e.target.closest('.nao-sei-cargo')) {
+    const btn = e.target.closest('.nao-sei-cargo');
+    const block = btn.nextElementSibling;
+    if (block?.classList.contains('cond-block') || block?.classList.contains('nao-sei-block')) {
+      block.classList.toggle('visible');
+      btn.textContent = block.classList.contains('visible') ? 'Esconder' : 'Não sei o nome do cargo';
+    }
+  }
+});
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.opacity = '1';
+  setTimeout(() => t.style.opacity = '0', 3500);
+}
+
+// ============================================================
+// VALIDATORS
+// ============================================================
+function next3() {
+  const obj = document.getElementById('objetivo').value.trim();
+  if (!obj) {
+    document.getElementById('objetivo').focus();
+    showToast('Me conta que tipo de vaga você quer — fala só o básico.');
+    return;
+  }
+  goTo(4);
+}
+
+// ============================================================
+// EXPERIENCE HTML
+// ============================================================
+function expHTML(n) {
+  return `
+<div class="acc-card" data-exp="${n}">
+  <div class="acc-header">
+    <div class="acc-header-left">
+      <span class="acc-num">${n}</span>
+      <div>
+        <div class="acc-label">Experiência ${n}</div>
+        <div class="acc-sub exp-preview">toque aqui para preencher essa experiência</div>
+      </div>
+    </div>
+    <button class="acc-remove-btn" onclick="removeExperience(this)">✕</button>
+    <span class="acc-chevron">▼</span>
+  </div>
+  <div class="acc-body">
+    <div class="acc-body-inner">
+
+      <div class="block-sep">Identificação</div>
+
+      <div class="field-group">
+        <span class="field-label-plain">Onde foi essa experiência?</span>
+        <input type="text" class="plain exp-local" placeholder="Ex.: loja do meu tio, venda de geladinho, oficina, trabalho por conta" oninput="updatePreview(this)" style="margin-top:6px;"/>
+        <p class="field-hint">Pode ser o nome da empresa, do lugar ou uma descrição simples.</p>
+      </div>
+
+      <div class="field-group">
+        <span class="field-label-plain">Essa experiência foi o quê?</span>
+        <div class="chip-grid" style="margin-top:6px;">
+          <label class="chip"><input type="radio" name="tipo_${n}" value="clt"/><span class="chip-plus">+</span><span>Emprego com carteira</span></label>
+          <label class="chip"><input type="radio" name="tipo_${n}" value="sem-reg"/><span class="chip-plus">+</span><span>Trabalho sem registro</span></label>
+          <label class="chip"><input type="radio" name="tipo_${n}" value="bico"/><span class="chip-plus">+</span><span>Bico</span></label>
+          <label class="chip"><input type="radio" name="tipo_${n}" value="freelance"/><span class="chip-plus">+</span><span>Freelance</span></label>
+          <label class="chip"><input type="radio" name="tipo_${n}" value="conta-propria"/><span class="chip-plus">+</span><span>Por conta própria</span></label>
+          <label class="chip"><input type="radio" name="tipo_${n}" value="familia"/><span class="chip-plus">+</span><span>Negócio da família</span></label>
+          <label class="chip"><input type="radio" name="tipo_${n}" value="estagio"/><span class="chip-plus">+</span><span>Estágio</span></label>
+          <label class="chip"><input type="radio" name="tipo_${n}" value="projeto"/><span class="chip-plus">+</span><span>Projeto</span></label>
+          <label class="chip"><input type="radio" name="tipo_${n}" value="ajudei-projeto"/><span class="chip-plus">+</span><span>Ajudei em um projeto de alguém</span></label>
+          <label class="chip"><input type="radio" name="tipo_${n}" value="voluntario"/><span class="chip-plus">+</span><span>Voluntário</span></label>
+          <label class="chip"><input type="radio" name="tipo_${n}" value="outro"/><span class="chip-plus">+</span><span>Outro</span></label>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <span class="field-label-plain">Qual era o seu cargo?</span>
+        <div class="field-sublabel" style="margin-top:4px;">Marca o que mais combina. Pode marcar mais de uma.</div>
+        <div class="chip-grid" style="margin-top:6px;">
+          <label class="chip"><input type="checkbox" name="cargo_${n}" value="atendimento"/><span class="chip-plus">+</span><span>Atendimento</span></label>
+          <label class="chip"><input type="checkbox" name="cargo_${n}" value="vendas"/><span class="chip-plus">+</span><span>Vendas</span></label>
+          <label class="chip"><input type="checkbox" name="cargo_${n}" value="administrativo"/><span class="chip-plus">+</span><span>Administrativo</span></label>
+          <label class="chip"><input type="checkbox" name="cargo_${n}" value="organizacao"/><span class="chip-plus">+</span><span>Organização</span></label>
+          <label class="chip"><input type="checkbox" name="cargo_${n}" value="logistica"/><span class="chip-plus">+</span><span>Logística</span></label>
+          <label class="chip"><input type="checkbox" name="cargo_${n}" value="producao"/><span class="chip-plus">+</span><span>Produção</span></label>
+          <label class="chip"><input type="checkbox" name="cargo_${n}" value="marketing"/><span class="chip-plus">+</span><span>Marketing</span></label>
+          <label class="chip"><input type="checkbox" name="cargo_${n}" value="operacional"/><span class="chip-plus">+</span><span>Operacional</span></label>
+          <label class="chip"><input type="checkbox" name="cargo_${n}" value="fazia-tudo"/><span class="chip-plus">+</span><span>Fazia de tudo</span></label>
+          <label class="chip cargo-outro-chip" style="cursor:text;min-width:110px;">
+            <input type="checkbox" name="cargo_${n}" value="outro" style="display:none;"/>
+            <span class="chip-plus">+</span>
+            <span class="co-label" style="color:var(--text3);font-style:italic;">outro</span>
+            <input type="text" class="co-input" placeholder="qual cargo?" style="display:none;border:none;background:transparent;outline:none;font-family:inherit;font-size:12.5px;color:var(--text);width:90px;padding:0;" onclick="event.stopPropagation();"/>
+          </label>
+        </div>
+        <button type="button" class="btn-ghost nao-sei-cargo" style="margin-top:10px;">Não sei o nome do cargo</button>
+        <div class="cond-block nao-sei-block">
+          <span class="cond-label">Descreva a sua função</span>
+          <div class="cond-help">Se você não souber o nome do cargo, tudo bem. Só explica do seu jeito o que você fazia.</div>
+          <textarea class="plain exp-cargo" placeholder="Ex.: ajudei no Airbnb da minha tia / vendia cheirinhos / ajudava no atendimento / organizava pedidos / fazia entregas" style="min-height:72px;"></textarea>
+        </div>
+      </div>
+
+      <div class="date-row">
+        <div class="field-group">
+          <span class="field-label-plain">Quando começou?</span>
+          <input type="month" class="plain exp-inicio" style="margin-top:6px;"/>
+          <p class="field-hint">Aproximado tá bom.</p>
+        </div>
+        <div class="field-group">
+          <span class="field-label-plain">Quando terminou?</span>
+          <input type="month" class="plain exp-fim" style="margin-top:6px;"/>
+          <div style="margin-top:7px;display:flex;flex-direction:column;gap:5px;">
+            <label class="chip" style="font-size:12px;"><input type="radio" name="fim_${n}" value="atual"/><span class="chip-plus">+</span><span>Ainda faço isso</span></label>
+            <label class="chip" style="font-size:12px;"><input type="radio" name="fim_${n}" value="nao-lembro"/><span class="chip-plus">+</span><span>Não lembro a data</span></label>
+          </div>
+          <p class="field-hint">Se ainda faz isso, marca acima.</p>
+        </div>
+      </div>
+
+      <div class="block-sep">Marque o que mais combina com essa experiência</div>
+
+      <div class="field-group">
+        <div class="field-sublabel">Marca o que fazia parte da sua rotina. Pode marcar várias.</div>
+        <div class="chip-grid">
+          <label class="chip"><input type="checkbox" name="rotina_${n}" value="Atendia clientes pessoalmente"/><span class="chip-plus">+</span><span>Atendia clientes pessoalmente</span></label>
+          <label class="chip"><input type="checkbox" name="rotina_${n}" value="Atendia pelo WhatsApp ou telefone"/><span class="chip-plus">+</span><span>Atendia pelo WhatsApp ou telefone</span></label>
+          <label class="chip"><input type="checkbox" name="rotina_${n}" value="Vendia produto ou serviço"/><span class="chip-plus">+</span><span>Vendia produto ou serviço</span></label>
+          <label class="chip"><input type="checkbox" name="rotina_${n}" value="Explicava produto para cliente"/><span class="chip-plus">+</span><span>Explicava produto para cliente</span></label>
+          <label class="chip"><input type="checkbox" name="rotina_${n}" value="Respondia mensagens"/><span class="chip-plus">+</span><span>Respondia mensagens</span></label>
+          <label class="chip"><input type="checkbox" name="rotina_${n}" value="Organizava pedidos"/><span class="chip-plus">+</span><span>Organizava pedidos</span></label>
+          <label class="chip"><input type="checkbox" name="rotina_${n}" value="Organizava estoque ou mercadoria"/><span class="chip-plus">+</span><span>Organizava estoque ou mercadoria</span></label>
+          <label class="chip"><input type="checkbox" name="rotina_${n}" value="Cuidava do caixa ou pagamentos"/><span class="chip-plus">+</span><span>Cuidava do caixa ou pagamentos</span></label>
+          <label class="chip"><input type="checkbox" name="rotina_${n}" value="Fazia entregas"/><span class="chip-plus">+</span><span>Fazia entregas</span></label>
+          <label class="chip"><input type="checkbox" name="rotina_${n}" value="Mexia em computador, sistema ou planilha"/><span class="chip-plus">+</span><span>Mexia em computador, sistema ou planilha</span></label>
+          <label class="chip"><input type="checkbox" name="rotina_${n}" value="Divulgava produto, serviço ou negócio"/><span class="chip-plus">+</span><span>Divulgava produto, serviço ou negócio</span></label>
+          <label class="chip"><input type="checkbox" name="rotina_${n}" value="Resolvia problemas"/><span class="chip-plus">+</span><span>Resolvia problemas</span></label>
+          <label class="chip"><input type="checkbox" name="rotina_${n}" value="Trabalhava com meta ou prazo"/><span class="chip-plus">+</span><span>Trabalhava com meta ou prazo</span></label>
+          <label class="chip"><input type="checkbox" name="rotina_${n}" value="Cuidava de uma parte sozinho"/><span class="chip-plus">+</span><span>Cuidava de uma parte sozinho</span></label>
+          <label class="chip"><input type="checkbox" name="rotina_${n}" value="Fazia de tudo um pouco"/><span class="chip-plus">+</span><span>Fazia de tudo um pouco</span></label>
+        </div>
+      </div>
+
+      <div class="block-sep">Informação extra <span class="opt-badge">opcional</span></div>
+
+      <div class="field-group">
+        <div class="field-sublabel">Aqui você pode colocar qualquer detalhe que ajude a entender melhor esse trabalho.</div>
+        <textarea class="plain exp-descricao" placeholder="Ex.: depois de um tempo passaram a confiar mais em mim, eu atendia bastante cliente e cuidava de várias coisas ao mesmo tempo" style="min-height:80px;"></textarea>
+        <p class="field-hint">Pode escrever simples. Se não quiser, também pode deixar em branco.</p>
+      </div>
+
+    </div>
+  </div>
+</div>`;
+}
+
+function updatePreview(input) {
+  const card = input.closest('.acc-card');
+  const preview = card?.querySelector('.exp-preview, .acc-sub');
+  if (preview) preview.textContent = input.value.trim() || 'toque aqui para preencher essa experiência';
+}
+
+function addExperience() {
+  experienceCount++;
+  document.querySelectorAll('.acc-card').forEach(c => c.classList.remove('open'));
+  const container = document.getElementById('experiences-container');
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = expHTML(experienceCount);
+  const card = wrapper.firstElementChild;
+  container.appendChild(card);
+  card.classList.add('open');
+  setTimeout(() => card.scrollIntoView({behavior:'smooth',block:'nearest'}), 50);
+}
+
+function removeExperience(btn) {
+  const card = btn.closest('.acc-card');
+  if (document.querySelectorAll('.acc-card').length <= 1) {
+    showToast('Precisa ter pelo menos uma experiência pra continuar.');
+    return;
+  }
+  card.remove();
+  document.querySelectorAll('.acc-card').forEach((c, i) => {
+    const n = i + 1;
+    c.dataset.exp = n;
+    c.querySelector('.acc-num').textContent = n;
+    c.querySelector('.acc-label').textContent = `Experiência ${n}`;
+  });
+}
+
+// ============================================================
+// CARGO OUTRO CHIP
+// ============================================================
+document.addEventListener('click', function(e) {
+  const outrochip = e.target.closest('.cargo-outro-chip');
+  if (!outrochip) return;
+  if (e.target.classList.contains('co-input')) return;
+  const labelEl = outrochip.querySelector('.co-label');
+  const inputEl = outrochip.querySelector('.co-input');
+  const cbEl = outrochip.querySelector('input[type="checkbox"]');
+  outrochip.classList.add('sel','selected');
+  labelEl.style.display = 'none';
+  inputEl.style.display = 'inline-block';
+  cbEl.checked = true;
+  inputEl.focus();
+});
+
+document.addEventListener('blur', function(e) {
+  if (!e.target.classList.contains('co-input')) return;
+  const chip = e.target.closest('.cargo-outro-chip');
+  if (!chip) return;
+  const labelEl = chip.querySelector('.co-label');
+  const cbEl = chip.querySelector('input[type="checkbox"]');
+  const val = e.target.value.trim();
+  if (val) {
+    labelEl.textContent = val;
+    labelEl.style = 'display:inline;font-style:normal;color:var(--green);';
+    e.target.style.display = 'none';
+    cbEl.value = val;
+  } else {
+    labelEl.textContent = 'outro';
+    labelEl.style = 'display:inline;color:var(--text3);font-style:italic;';
+    e.target.style.display = 'none';
+    chip.classList.remove('sel','selected');
+    cbEl.checked = false;
+  }
+}, true);
+
+// ============================================================
+// FERRAMENTAS PANEL
+// ============================================================
+function toggleFerramentasPanel() {
+  const trigger = document.getElementById('ferramentasTrigger');
+  const panel = document.getElementById('ferramentasPanel');
+  const isOpen = panel.classList.contains('open');
+  panel.classList.toggle('open', !isOpen);
+  trigger.classList.toggle('open', !isOpen);
+  trigger.querySelector('.tools-trigger-label').textContent =
+    !isOpen ? 'Fechar opções' : 'Selecionar ferramentas e habilidades';
+}
+
+function updateFerramentasCount() {
+  const count = document.querySelectorAll('#ferramentas-options .chip.sel, #ferramentas-options .option-chip.selected').length;
+  const el = document.getElementById('ferramentasCount');
+  if (count > 0) { el.textContent = count; el.classList.add('vis'); }
+  else el.classList.remove('vis');
+}
+
+document.addEventListener('click', function(e) {
+  if (e.target.closest('#ferramentas-options')) setTimeout(updateFerramentasCount, 10);
+});
+
+function startAddTag() {
+  const chip = document.getElementById('addTagChip');
+  const input = document.getElementById('addTagInput');
+  chip.classList.add('typing');
+  chip.querySelector('span').style.display = 'none';
+  input.style.display = 'inline-block';
+  input.focus();
+}
+
+function handleAddTag(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const input = document.getElementById('addTagInput');
+    const val = input.value.trim();
+    if (!val) return;
+    const grid = document.getElementById('ferramentas-options');
+    const addChip = document.getElementById('addTagChip');
+    const newChip = document.createElement('label');
+    newChip.className = 'chip sel';
+    newChip.innerHTML = `<input type="checkbox" checked/><span class="chip-plus">+</span><span>${val}</span>`;
+    grid.insertBefore(newChip, addChip);
+    updateFerramentasCount();
+    input.value = '';
+    cancelAddTag();
+  }
+  if (e.key === 'Escape') cancelAddTag();
+}
+
+function cancelAddTag() {
+  const chip = document.getElementById('addTagChip');
+  const input = document.getElementById('addTagInput');
+  chip.classList.remove('typing');
+  chip.querySelector('span').style.display = 'inline';
+  input.style.display = 'none';
+}
+
+// ============================================================
+// AUDIO RECORDER
+// ============================================================
+const mediaRec = {1:null, 2:null};
+const timerInt = {1:null, 2:null};
+const audioBlobs = {1:null, 2:null};
+
+async function toggleRecord(n) {
+  if (mediaRec[n] && mediaRec[n].state === 'recording') stopRecord(n);
+  else await startRecord(n);
+}
+
+async function startRecord(n) {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    const rec = new MediaRecorder(stream);
+    mediaRec[n] = rec;
+    const chunks = [];
+    rec.ondataavailable = e => chunks.push(e.data);
+    rec.onstop = () => {
+      const blob = new Blob(chunks, {type:'audio/webm'});
+      audioBlobs[n] = blob;
+      const url = URL.createObjectURL(blob);
+      const pb = document.getElementById('playback' + n);
+      pb.src = url;
+      pb.classList.add('vis');
+      document.getElementById('badge' + n).classList.add('vis');
+      document.getElementById('req' + n).classList.remove('show');
+      document.getElementById('audioCard' + n)?.classList.add('done-state');
+    };
+    rec.start();
+    const btn = document.getElementById('recordBtn' + n);
+    btn.innerHTML = `<span class="rec-dot"></span> Parar gravação`;
+    btn.classList.add('recording');
+
+    let secs = 0;
+    document.getElementById('timerWrap' + n).classList.add('vis');
+    timerInt[n] = setInterval(() => {
+      secs++;
+      const m = Math.floor(secs/60);
+      const s = secs % 60;
+      document.getElementById('timer' + n).textContent = `${m}:${s.toString().padStart(2,'0')}`;
+      document.getElementById('timerFill' + n).style.width = (secs/300*100) + '%';
+      if (secs >= 300) stopRecord(n);
+    }, 1000);
+  } catch(err) {
+    showToast('Não consegui acessar o microfone. Verifique as permissões do navegador.');
+  }
+}
+
+function stopRecord(n) {
+  if (mediaRec[n]) {
+    mediaRec[n].stop();
+    mediaRec[n].stream?.getTracks().forEach(t => t.stop());
+    mediaRec[n] = null;
+  }
+  clearInterval(timerInt[n]);
+  const btn = document.getElementById('recordBtn' + n);
+  btn.innerHTML = `<span class="rec-dot"></span> Gravar novamente`;
+  btn.classList.remove('recording');
+  btn.classList.add('done-rec');
+  document.getElementById('timerWrap' + n).classList.remove('vis');
+}
+
+function nextAudios() {
+  let ok = true;
+  if (!audioBlobs[1]) { document.getElementById('req1').classList.add('show'); ok = false; }
+  if (!audioBlobs[2]) { document.getElementById('req2').classList.add('show'); ok = false; }
+  if (!ok) { showToast('Grave os dois áudios para continuar.'); return; }
+  goTo(8);
+}
+
+// ============================================================
+// REVIEW
+// ============================================================
+function buildReview() {
+  const obj = document.getElementById('objetivo').value || '—';
+  const cargo = document.getElementById('cargo-alvo').value || '—';
+  const modal = document.querySelector('input[name="modalidade"]:checked')?.parentElement?.querySelector('span:last-child')?.textContent || '—';
+  document.getElementById('review-objetivo').innerHTML =
+    `<strong>Tipo de vaga:</strong> ${obj}<br><strong>Cargo preferido:</strong> ${cargo}<br><strong>Modalidade:</strong> ${modal}`;
+
+  const expCont = document.getElementById('review-experiencias');
+  expCont.innerHTML = '';
+  document.querySelectorAll('.acc-card').forEach((card, i) => {
+    const local = card.querySelector('.exp-local')?.value || '—';
+    const cargo = card.querySelector('.exp-cargo')?.value || '';
+    const desc = card.querySelector('.exp-descricao')?.value || '';
+    const d = document.createElement('div');
+    d.className = 'review-item';
+    d.innerHTML = `<strong>Experiência ${i+1}: ${local}</strong>${cargo ? 'Função: '+cargo : ''}${desc ? '<br><span style="color:var(--text3);font-size:12px;">'+desc.substring(0,100)+(desc.length>100?'…':'')+'</span>' : ''}`;
+    expCont.appendChild(d);
+  });
+
+  const esc = document.querySelector('input[name="escolaridade"]:checked');
+  const escMap = {'fund-inc':'Fund. incompleto','fund-comp':'Fund. completo','med-inc':'Médio incompleto','med-comp':'Médio completo','sup-inc':'Superior incompleto','sup-comp':'Superior completo','tec':'Técnico','pos':'Pós-graduação'};
+  const cursos = document.getElementById('cursos').value;
+  document.getElementById('review-formacao').innerHTML =
+    `<strong>Escolaridade:</strong> ${esc ? escMap[esc.value]||esc.value : '—'}${cursos ? '<br><strong>Cursos:</strong> '+cursos.substring(0,120) : ''}`;
+
+  const ferrs = [...document.querySelectorAll('#ferramentas-options .chip.sel span:last-child, #ferramentas-options .option-chip.selected span:last-child')].map(s => s.textContent.trim()).filter(Boolean).join(', ') || '—';
+  const facs = [...document.querySelectorAll('#facilidades-options .chip.sel span:last-child, #facilidades-options .option-chip.selected span:last-child')].map(s => s.textContent.trim()).filter(Boolean).join(', ') || '—';
+  document.getElementById('review-habilidades').innerHTML =
+    `<strong>Ferramentas:</strong> ${ferrs}<br><strong>Facilidades:</strong> ${facs}`;
+}
+
+// ============================================================
+// SUBMIT
+// ============================================================
+async function submitForm() {
+  const btn = document.getElementById('submitBtn');
+  btn.textContent = 'Enviando…';
+  btn.disabled = true;
+
+  try {
+    // Token is set by the parent Next.js page via window.__VERTICE_TOKEN__
+    // The form is served in an iframe on the same origin, so parent access is allowed.
+    const token =
+      (window.parent && window.parent.__VERTICE_TOKEN__) ||
+      new URLSearchParams(window.location.search).get('token') ||
+      '';
+
+    if (!token) {
+      showToast('Token inválido. Recarregue a página.');
+      btn.textContent = 'Enviar minhas informações →';
+      btn.disabled = false;
+      return;
+    }
+
+    // ── Basic fields ──────────────────────────────────────────
+    const nomeCompleto = (document.getElementById('nome-completo')?.value || '').trim();
+    const cargoAlvo    = (document.getElementById('cargo-alvo')?.value || '').trim();
+    const cidade       = (document.getElementById('cidade')?.value || '').trim();
+    const estado       = (document.getElementById('estado')?.value || '').trim();
+    const objetivo     = (document.getElementById('objetivo')?.value || '').trim();
+
+    if (!nomeCompleto) { showToast('Preencha seu nome completo.'); btn.textContent = 'Enviar minhas informações →'; btn.disabled = false; return; }
+    if (!cargoAlvo)    { showToast('Preencha o cargo alvo.'); btn.textContent = 'Enviar minhas informações →'; btn.disabled = false; return; }
+
+    // ── Chip arrays ────────────────────────────────────────────
+    // trajetoria: real checkboxes with name="trajetoria"
+    const trajetoria = [...document.querySelectorAll('input[name="trajetoria"]:checked')]
+      .map(el => el.value).filter(Boolean);
+
+    // diferenciais: positive personality words (name="pos")
+    const diferenciais = [...document.querySelectorAll('input[name="pos"]:checked')]
+      .map(el => el.value).filter(Boolean);
+
+    // hard_skills: ferramentas — uses .chip.sel for both pre-defined and custom-added chips
+    const hardSkills = [
+      ...document.querySelectorAll('#ferramentas-options .chip.sel span:last-child, #ferramentas-options .option-chip.selected span:last-child')
+    ].map(el => el.textContent.trim()).filter(Boolean);
+
+    // soft_skills: facilidades — same pattern
+    const softSkills = [
+      ...document.querySelectorAll('#facilidades-options .chip.sel span:last-child, #facilidades-options .option-chip.selected span:last-child')
+    ].map(el => el.textContent.trim()).filter(Boolean);
+
+    // ── Experiences ────────────────────────────────────────────
+    const expCards = [...document.querySelectorAll('.acc-card[data-exp]')];
+
+    if (expCards.length === 0) {
+      showToast('Adicione pelo menos uma experiência.');
+      btn.textContent = 'Enviar minhas informações →';
+      btn.disabled = false;
+      return;
+    }
+
+    const experiencias = expCards.map(card => {
+      const n = card.getAttribute('data-exp');
+
+      const empresa = (card.querySelector('.exp-local')?.value || '').trim();
+      const tipo    = card.querySelector(`input[name="tipo_${n}"]:checked`)?.value || '';
+
+      // cargo: join selected chip labels; fall back to free-text field
+      const cargoChips = [...card.querySelectorAll(`input[name="cargo_${n}"]:checked`)];
+      const cargoLabels = cargoChips.map(el => {
+        if (el.value === 'outro') {
+          return (card.querySelector('.co-input')?.value || '').trim() || 'outro';
+        }
+        return el.closest('label')?.querySelector('span:last-child')?.textContent?.trim() || el.value;
+      }).filter(Boolean);
+      const cargo = cargoLabels.join(', ') || (card.querySelector('.exp-cargo')?.value || '').trim();
+
+      const responsabilidades = (card.querySelector('.exp-cargo')?.value || '').trim();
+      const periodoInicio     = card.querySelector('.exp-inicio')?.value || '';
+      const periodoFim        = card.querySelector('.exp-fim')?.value || '';
+      const atual             = !!card.querySelector(`input[name="fim_${n}"][value="atual"]:checked`);
+      const impactos          = (card.querySelector('.exp-descricao')?.value || '').trim();
+
+      // rotina: checkboxes with name="rotina_${n}"
+      const rotina = [...card.querySelectorAll(`input[name="rotina_${n}"]:checked`)]
+        .map(el => el.value).filter(Boolean);
+
+      return {
+        cargo,
+        empresa,
+        periodo_inicio: periodoInicio,
+        periodo_fim:    periodoFim,
+        atual,
+        local:          empresa,
+        tipo,
+        responsabilidades,
+        impactos,
+        facilidades:    cargoLabels,
+        rotina,
+      };
+    });
+
+    // ── FormData ───────────────────────────────────────────────
+    const fd = new FormData();
+    fd.append('access_token',          token);
+    fd.append('nome_completo',         nomeCompleto);
+    fd.append('cargo_alvo',            cargoAlvo);
+    if (cidade)   fd.append('cidade',  cidade);
+    if (estado)   fd.append('estado',  estado);
+    if (objetivo) fd.append('objetivo_profissional', objetivo);
+    fd.append('trajetoria',   JSON.stringify(trajetoria));
+    fd.append('diferenciais', JSON.stringify(diferenciais));
+    fd.append('soft_skills',  JSON.stringify(softSkills));
+    fd.append('hard_skills',  JSON.stringify(hardSkills));
+    fd.append('experiencias', JSON.stringify(experiencias));
+
+    // Audio blobs: audioBlobs[1] → audio_1 (exp 1), audioBlobs[2] → audio_2 (exp 2)
+    if (audioBlobs[1]) fd.append('audio_1', audioBlobs[1], 'audio1.webm');
+    if (audioBlobs[2]) fd.append('audio_2', audioBlobs[2], 'audio2.webm');
+
+    // ── POST ───────────────────────────────────────────────────
+    const res = await fetch('/api/submit', { method: 'POST', body: fd });
+
+    if (res.ok) {
+      goToSuccess();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      const msg = data.error || 'Erro ao enviar. Tente novamente.';
+      showToast(msg);
+      btn.textContent = 'Enviar minhas informações →';
+      btn.disabled = false;
+    }
+  } catch (err) {
+    console.error('submitForm error:', err);
+    showToast('Erro de conexão. Verifique sua internet e tente novamente.');
+    btn.textContent = 'Enviar minhas informações →';
+    btn.disabled = false;
+  }
+}
+
+// ============================================================
+// UPLOADS
+// ============================================================
+document.querySelectorAll('.upload-zone input[type="file"]').forEach(input => {
+  input.addEventListener('change', function() {
+    const label = this.closest('.upload-zone')?.querySelector('.upload-zone-label');
+    if (label && this.files.length > 0) label.textContent = '✅ ' + this.files[0].name;
+  });
+});
+
+// ============================================================
+// INIT
+// ============================================================
+addExperience();
+renderSidebar();
+updateProgress();
+</script>
+</body>
+</html>
