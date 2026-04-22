@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
-export default function LoginPage() {
+function LoginForm() {
   const router       = useRouter()
   const searchParams = useSearchParams()
   const supabase     = createClient()
@@ -23,10 +23,7 @@ export default function LoginPage() {
     setError(null)
     setLoading(true)
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password: pw,
-    })
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password: pw })
 
     setLoading(false)
 
@@ -39,43 +36,38 @@ export default function LoginPage() {
   }
 
   return (
+    <form onSubmit={handleSubmit} style={s.form}>
+      <div style={s.field}>
+        <label style={s.fieldLabel}>Email</label>
+        <input
+          type="email" value={email} onChange={e => setEmail(e.target.value)}
+          placeholder="seu@email.com" required autoComplete="email" style={s.input}
+        />
+      </div>
+      <div style={s.field}>
+        <label style={s.fieldLabel}>Senha</label>
+        <input
+          type="password" value={pw} onChange={e => setPw(e.target.value)}
+          placeholder="••••••••" required autoComplete="current-password" style={s.input}
+        />
+      </div>
+      {error && <p style={s.error}>{error}</p>}
+      <button type="submit" disabled={loading} style={s.btn}>
+        {loading ? 'Entrando...' : 'Entrar →'}
+      </button>
+    </form>
+  )
+}
+
+export default function LoginPage() {
+  return (
     <main style={s.main}>
       <div style={s.card}>
         <p style={s.label}>Método Vértice</p>
         <h1 style={s.title}>Entrar</h1>
-
-        <form onSubmit={handleSubmit} style={s.form}>
-          <div style={s.field}>
-            <label style={s.fieldLabel}>Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="seu@email.com"
-              required
-              autoComplete="email"
-              style={s.input}
-            />
-          </div>
-          <div style={s.field}>
-            <label style={s.fieldLabel}>Senha</label>
-            <input
-              type="password"
-              value={pw}
-              onChange={e => setPw(e.target.value)}
-              placeholder="••••••••"
-              required
-              autoComplete="current-password"
-              style={s.input}
-            />
-          </div>
-
-          {error && <p style={s.error}>{error}</p>}
-
-          <button type="submit" disabled={loading} style={s.btn}>
-            {loading ? 'Entrando...' : 'Entrar →'}
-          </button>
-        </form>
+        <Suspense fallback={<div style={{ height: 200 }} />}>
+          <LoginForm />
+        </Suspense>
       </div>
     </main>
   )
