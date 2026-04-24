@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { use, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-export default function AguardoPage({ params }: { params: { token: string } }) {
+export default function AguardoPage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = use(params)
   const router = useRouter()
   const [status, setStatus] = useState<string>('processing')
 
@@ -12,13 +13,13 @@ export default function AguardoPage({ params }: { params: { token: string } }) {
 
     async function pollStatus() {
       try {
-        const res = await fetch(`/api/status/${params.token}`)
+        const res = await fetch(`/api/status/${token}`)
         if (!res.ok) return
         const { status: s } = await res.json()
         if (!active) return
         setStatus(s)
         if (s === 'completed') {
-          router.push(`/entrega/${params.token}`)
+          router.push(`/entrega/${token}`)
           return
         }
         if (s !== 'failed' && active) {
@@ -31,7 +32,7 @@ export default function AguardoPage({ params }: { params: { token: string } }) {
 
     pollStatus()
     return () => { active = false }
-  }, [params.token, router])
+  }, [token, router])
 
   return (
     <html lang="pt-BR">

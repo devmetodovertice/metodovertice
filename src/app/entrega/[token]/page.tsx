@@ -2,13 +2,18 @@ import { notFound } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import AjusteForm from './AjusteForm'
 
-export default async function EntregaPage({ params }: { params: { token: string } }) {
+export default async function EntregaPage({
+  params,
+}: {
+  params: Promise<{ token: string }>
+}) {
+  const { token } = await params
   const supabase = createServerClient()
 
   const { data: submission } = await supabase
     .from('submissions')
     .select('id, status, pdf_url')
-    .eq('access_token', params.token)
+    .eq('access_token', token)
     .single()
 
   if (!submission || submission.status !== 'completed') return notFound()
