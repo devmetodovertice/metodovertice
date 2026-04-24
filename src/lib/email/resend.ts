@@ -5,7 +5,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL
 
 export async function sendInviteEmail(to: string, inviteLink: string) {
   await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL!,
+    from: process.env.RESEND_FROM!,
     to,
     subject: 'Método Vértice — crie sua senha e acesse seu currículo',
     html: `<!DOCTYPE html>
@@ -38,7 +38,7 @@ export async function sendInviteEmail(to: string, inviteLink: string) {
 
 export async function sendFormEmail(to: string, token: string) {
   await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL!,
+    from: process.env.RESEND_FROM!,
     to,
     subject: 'Método Vértice — preencha seu formulário',
     html: `
@@ -62,7 +62,7 @@ export async function sendDeliveryEmail(token: string) {
   if (!data?.customer_email) return
 
   await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL!,
+    from: process.env.RESEND_FROM!,
     to: data.customer_email,
     subject: 'Seu currículo está pronto — Método Vértice',
     html: `
