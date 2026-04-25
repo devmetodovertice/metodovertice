@@ -31,7 +31,7 @@ export default function SetPasswordPage() {
     setLoading(false)
 
     if (updateError) {
-      setError(updateError.message)
+      setError('Não foi possível salvar a senha. O link pode ter expirado — volte ao e-mail e tente novamente.')
       return
     }
 

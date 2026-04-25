@@ -3,14 +3,7 @@ import { Resend } from 'resend'
 const resend = new Resend(process.env.RESEND_API_KEY)
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL
 
-export async function sendInviteEmail(to: string, inviteLink: string) {
-  await resend.emails.send({
-    from: process.env.RESEND_FROM!,
-    to,
-    subject: 'Método Vértice — crie sua senha e acesse seu currículo',
-    html: `<!DOCTYPE html>
-<html lang="pt-BR">
-<head><meta charset="UTF-8"><style>
+const baseStyle = `
   body { margin:0; font-family: -apple-system, system-ui, sans-serif; background:#f5f5f5; }
   .wrap { max-width:520px; margin:40px auto; }
   .card { background:#fff; border-radius:12px; overflow:hidden; }
@@ -23,30 +16,44 @@ export async function sendInviteEmail(to: string, inviteLink: string) {
          text-decoration:none; padding:14px 28px; border-radius:8px;
          font-size:15px; font-weight:600; margin:28px 0; }
   .note { font-size:12px; color:#aaa; }
-</style></head>
+`
+
+function emailTemplate(body: string) {
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><style>${baseStyle}</style></head>
 <body><div class="wrap"><div class="card">
   <div class="top"><div class="logo">Método Vértice</div></div>
-  <div class="body">
-    <h2>Seu acesso está pronto.</h2>
-    <p>Clique no botão abaixo para criar sua senha e acessar a plataforma onde você vai preencher as informações para gerar seu currículo.</p>
-    <a href="${inviteLink}" class="btn">Criar senha e acessar →</a>
-    <p class="note">Este link expira em 24 horas. Não compartilhe com ninguém.</p>
-  </div>
-</div></div></body></html>`,
+  <div class="body">${body}</div>
+</div></div></body></html>`
+}
+
+export async function sendInviteEmail(to: string, inviteLink: string) {
+  await resend.emails.send({
+    from: process.env.RESEND_FROM!,
+    to,
+    subject: 'Método Vértice — crie sua senha e acesse a plataforma',
+    html: emailTemplate(`
+      <h2>Seu acesso está pronto.</h2>
+      <p>Clique no botão abaixo para criar sua senha e acessar a plataforma onde você vai preencher as informações para gerar seu currículo.</p>
+      <a href="${inviteLink}" class="btn">Criar senha e acessar →</a>
+      <p class="note">Este link expira em 24 horas. Não compartilhe com ninguém.</p>
+    `),
   })
 }
 
 export async function sendFormEmail(to: string, token: string) {
+  const link = `${APP_URL}/formulario/${token}`
   await resend.emails.send({
     from: process.env.RESEND_FROM!,
     to,
-    subject: 'Método Vértice — preencha seu formulário',
-    html: `
-      <p>Olá! Seu acesso foi criado.</p>
-      <p>Acesse o link abaixo para preencher seu formulário:</p>
-      <p><a href="${APP_URL}/formulario/${token}">${APP_URL}/formulario/${token}</a></p>
-      <p>Este link é único e exclusivo para você. Não compartilhe.</p>
-    `,
+    subject: 'Método Vértice — seu formulário está esperando por você',
+    html: emailTemplate(`
+      <h2>Tudo pronto para começar.</h2>
+      <p>Clique no botão abaixo para preencher seu formulário e dar o primeiro passo na construção do seu currículo.</p>
+      <a href="${link}" class="btn">Preencher formulário →</a>
+      <p class="note">Este link é único e exclusivo para você. Não compartilhe com ninguém.</p>
+    `),
   })
 }
 
@@ -61,14 +68,16 @@ export async function sendDeliveryEmail(token: string) {
 
   if (!data?.customer_email) return
 
+  const link = `${APP_URL}/entrega/${token}`
   await resend.emails.send({
     from: process.env.RESEND_FROM!,
     to: data.customer_email,
     subject: 'Seu currículo está pronto — Método Vértice',
-    html: `
-      <p>Seu currículo foi gerado com sucesso!</p>
-      <p>Acesse o link abaixo para baixar:</p>
-      <p><a href="${APP_URL}/entrega/${token}">${APP_URL}/entrega/${token}</a></p>
-    `,
+    html: emailTemplate(`
+      <h2>Seu currículo ficou pronto.</h2>
+      <p>Analisamos tudo que você compartilhou e montamos seu currículo. Clique no botão abaixo para visualizar e baixar.</p>
+      <a href="${link}" class="btn">Ver meu currículo →</a>
+      <p class="note">Se quiser ajustar algo, basta acessar o link e solicitar uma revisão.</p>
+    `),
   })
 }
